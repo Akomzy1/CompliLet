@@ -1,0 +1,246 @@
+{
+  "_meta": {
+    "description": "CompliLet WhatsApp Business message templates for Meta pre-approval.",
+    "waba_id": "REPLACE_WITH_WABA_ID",
+    "namespace": "complilet_templates",
+    "language": "en_GB",
+    "how_to_submit": "Submit each template individually via the Meta Business Manager API or Graph API. See submit-templates.sh for the curl commands.",
+    "approval_timeline": "Typically 24–48 hours. Rejected templates can be resubmitted with minor wording changes.",
+    "notes": [
+      "Template names must be lowercase, underscores only, max 512 chars.",
+      "Variables use {{1}}, {{2}} etc. — positional, not named.",
+      "MARKETING category templates require an opt-out button if sent to non-opted-in users.",
+      "UTILITY templates (transactional) have lower opt-out requirements.",
+      "All templates below are UTILITY unless otherwise noted."
+    ]
+  },
+  "templates": [
+    {
+      "name": "screening_invitation",
+      "category": "UTILITY",
+      "language": "en_GB",
+      "status": "PENDING",
+      "components": [
+        {
+          "type": "HEADER",
+          "format": "TEXT",
+          "text": "Tenant Screening — {{1}}"
+        },
+        {
+          "type": "BODY",
+          "text": "Hi! I'm CompliLet, the AI screening assistant for *{{1}}*.\n\nThey've asked me to help verify your details for a rental application at *{{2}}*.\n\nThis is a quick and secure process — I'll ask for a few documents and references. Ready to get started?",
+          "example": {
+            "body_text": [["James Smith", "42 Maple Road, Manchester, M1 4AB"]]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "CompliLet · complilet.co.uk"
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "QUICK_REPLY",
+              "text": "Yes, let's start"
+            },
+            {
+              "type": "QUICK_REPLY",
+              "text": "Not interested"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "document_request",
+      "category": "UTILITY",
+      "language": "en_GB",
+      "status": "PENDING",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "To complete your application, I need a photo of your *{{1}}*.\n\nPlease send a clear, well-lit photo where all four corners are visible. Accepted formats: JPG, PNG, or PDF.\n\nIf you have any questions, just reply to this message.",
+          "example": {
+            "body_text": [["passport (photo page)"]]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "CompliLet · Your documents are encrypted and stored securely."
+        }
+      ]
+    },
+    {
+      "name": "reference_request",
+      "category": "UTILITY",
+      "language": "en_GB",
+      "status": "PENDING",
+      "components": [
+        {
+          "type": "HEADER",
+          "format": "TEXT",
+          "text": "Rental Reference Request"
+        },
+        {
+          "type": "BODY",
+          "text": "Hello,\n\n*{{1}}* has listed you as a {{2}} reference for a rental application.\n\nI'm CompliLet, an automated reference assistant. Could you spare 2 minutes to answer a few short questions about {{1}}?\n\nYour response will be treated confidentially and shared only with the prospective landlord.",
+          "example": {
+            "body_text": [["Sarah Johnson", "previous landlord"]]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "CompliLet · complilet.co.uk"
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "QUICK_REPLY",
+              "text": "Yes, I'll help"
+            },
+            {
+              "type": "QUICK_REPLY",
+              "text": "Decline"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "rent_reminder",
+      "category": "UTILITY",
+      "language": "en_GB",
+      "status": "PENDING",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Hi {{1}},\n\nFriendly reminder: your rent of *£{{2}}* for *{{3}}* is due on *{{4}}*.\n\nIf you've already arranged payment, please ignore this message. Reply *PAID* once your payment has been sent.",
+          "example": {
+            "body_text": [["Alex", "850", "42 Maple Road, Manchester", "1st May 2026"]]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "CompliLet · Managed by your landlord"
+        }
+      ]
+    },
+    {
+      "name": "compliance_alert",
+      "category": "UTILITY",
+      "language": "en_GB",
+      "status": "PENDING",
+      "components": [
+        {
+          "type": "HEADER",
+          "format": "TEXT",
+          "text": "⚠️ Compliance Action Required"
+        },
+        {
+          "type": "BODY",
+          "text": "Your *{{1}}* for *{{2}}* is due on *{{3}}*.\n\nFailure to renew may result in fines of {{4}}. I can help you find a certified engineer — just reply *FIND ENGINEER* and I'll search our contractor network.\n\nType *DONE* once the certificate has been renewed and I'll update your records.",
+          "example": {
+            "body_text": [["Gas Safety Certificate", "42 Maple Road, Manchester", "15 May 2026", "up to £6,000"]]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "CompliLet · complilet.co.uk"
+        }
+      ]
+    },
+    {
+      "name": "screening_complete",
+      "category": "UTILITY",
+      "language": "en_GB",
+      "status": "PENDING",
+      "components": [
+        {
+          "type": "HEADER",
+          "format": "TEXT",
+          "text": "✅ Screening Complete"
+        },
+        {
+          "type": "BODY",
+          "text": "Great news! The screening for *{{1}}* at *{{2}}* is complete.\n\nScreening score: *{{3}}/10* — {{4}}\n\nYour full report is ready. Reply *YES* to approve this tenant, or *NO* to decline.\n\nThe report has also been sent to your email.",
+          "example": {
+            "body_text": [["Sarah Johnson", "42 Maple Road, Manchester", "8", "Recommended"]]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "CompliLet · complilet.co.uk"
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "QUICK_REPLY",
+              "text": "Approve tenant"
+            },
+            {
+              "type": "QUICK_REPLY",
+              "text": "Decline tenant"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "payment_request",
+      "category": "UTILITY",
+      "language": "en_GB",
+      "status": "PENDING",
+      "components": [
+        {
+          "type": "HEADER",
+          "format": "TEXT",
+          "text": "CompliLet — Payment Required"
+        },
+        {
+          "type": "BODY",
+          "text": "Your 3 free screenings have been used. To screen *{{1}}* at *{{2}}*, a payment of *£{{3}}* is required.\n\nClick below to pay securely via Stripe:",
+          "example": {
+            "body_text": [["Sarah Johnson", "42 Maple Road, Manchester", "4.99"]]
+          }
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "Pay now",
+              "url": "{{1}}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "inspection_request",
+      "category": "UTILITY",
+      "language": "en_GB",
+      "status": "PENDING",
+      "components": [
+        {
+          "type": "HEADER",
+          "format": "TEXT",
+          "text": "Quarterly Property Inspection"
+        },
+        {
+          "type": "BODY",
+          "text": "Hi {{1}},\n\nIt's time for your quarterly property inspection at *{{2}}*.\n\nPlease send photos of each room (living room, kitchen, bathroom, bedroom(s), and any external areas). Clear, well-lit photos work best.\n\nYou have *7 days* to submit — by *{{3}}*.",
+          "example": {
+            "body_text": [["Alex", "42 Maple Road, Manchester", "18 May 2026"]]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "CompliLet · Your photos are reviewed by AI and your landlord."
+        }
+      ]
+    }
+  ]
+}

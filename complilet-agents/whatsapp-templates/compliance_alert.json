@@ -1,0 +1,23 @@
+{
+  "name": "compliance_alert",
+  "language": "en",
+  "category": "UTILITY",
+  "components": [
+    {
+      "type": "HEADER",
+      "format": "TEXT",
+      "text": "⚠️ Compliance Reminder"
+    },
+    {
+      "type": "BODY",
+      "text": "Hi {{1}},\n\nYour *{{2}}* for *{{3}}* is due on *{{4}}*.\n\nThis is a legal requirement. Failure to renew before the deadline may result in a fine.\n\nReply *DONE* if you have already arranged this, or *HELP* for guidance on finding a certified engineer.",
+      "example": {
+        "body_text": [["David", "Gas Safety Certificate", "12 Oak Street, Manchester", "15 May 2026"]]
+      }
+    },
+    {
+      "type": "FOOTER",
+      "text": "CompliLet Compliance Autopilot"
+    }
+  ]
+}

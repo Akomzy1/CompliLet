@@ -1,0 +1,23 @@
+{
+  "name": "reference_request",
+  "language": "en",
+  "category": "UTILITY",
+  "components": [
+    {
+      "type": "HEADER",
+      "format": "TEXT",
+      "text": "Reference Request"
+    },
+    {
+      "type": "BODY",
+      "text": "Hi {{1}},\n\n{{2}} has listed you as a *{{3}} reference* as part of their rental application.\n\nI'm CompliLet, an automated screening assistant. Could you take 2 minutes to confirm a few details?\n\nReply *YES* to provide a reference, or *DECLINE* if you'd prefer not to.",
+      "example": {
+        "body_text": [["Sarah Jones", "Alex Turner", "previous landlord"]]
+      }
+    },
+    {
+      "type": "FOOTER",
+      "text": "CompliLet · complilet.co.uk"
+    }
+  ]
+}

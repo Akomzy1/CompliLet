@@ -1,0 +1,293 @@
+@import "tailwindcss";
+@config "../../tailwind.config.ts";
+
+/* ─── Brand CSS Variables ─────────────────────────────────────────────────── */
+:root {
+  --navy: #0f2b46;
+  --teal: #0d9488;
+  --teal-light: #e0f5f3;
+  --cream: #fdf8f0;
+  --whatsapp-green: #25d366;
+  --dark-text: #111827;
+  --muted-gray: #6b7280;
+  --alert-red: #dc2626;
+  --success-green: #16a34a;
+}
+
+/* ─── Tailwind v4 Theme Tokens ────────────────────────────────────────────── */
+@theme {
+  --color-navy: #0f2b46;
+  --color-teal: #0d9488;
+  --color-teal-light: #e0f5f3;
+  --color-cream: #fdf8f0;
+  --color-whatsapp-green: #25d366;
+  --color-dark-text: #111827;
+  --color-muted-gray: #6b7280;
+  --color-alert-red: #dc2626;
+  --color-success-green: #16a34a;
+
+  --font-display: var(--font-clash-display), sans-serif;
+  --font-body: var(--font-outfit), sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
+/* ─── Base Styles ─────────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  background-color: var(--cream);
+  color: var(--dark-text);
+  font-family: var(--font-body);
+  min-height: 100dvh;
+}
+
+/* ─── Typography Utilities ────────────────────────────────────────────────── */
+.font-display {
+  font-family: var(--font-display);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+/* ─── Focus Styles (WCAG AA) ──────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
+/* ─── WhatsApp UI Helpers ─────────────────────────────────────────────────── */
+.whatsapp-bubble-out {
+  background-color: #dcf8c6;
+  border-radius: 0.75rem 0.75rem 0.125rem 0.75rem;
+  font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.875rem;
+}
+
+.whatsapp-bubble-in {
+  background-color: #ffffff;
+  border-radius: 0.75rem 0.75rem 0.75rem 0.125rem;
+  font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.875rem;
+}
+
+/* ─── Typing Indicator Dots ───────────────────────────────────────────────── */
+.typing-dot:nth-child(1) {
+  animation: typingDot 1.2s ease-in-out infinite 0s;
+}
+.typing-dot:nth-child(2) {
+  animation: typingDot 1.2s ease-in-out infinite 0.2s;
+}
+.typing-dot:nth-child(3) {
+  animation: typingDot 1.2s ease-in-out infinite 0.4s;
+}
+
+@keyframes typingDot {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-5px);
+    opacity: 1;
+  }
+}
+
+/* ─── Scroll Snap ─────────────────────────────────────────────────────────── */
+.snap-x-mandatory {
+  scroll-snap-type: x mandatory;
+}
+.snap-center {
+  scroll-snap-align: center;
+}
+
+/* ─── Blog Prose ──────────────────────────────────────────────────────────── */
+/* Applied to the article wrapper on /blog/[slug] pages. Scopes all heading,   */
+/* paragraph, list, table, and code styles without affecting the rest of the   */
+/* site. Uses the brand palette and Clash Display + Outfit fonts throughout.   */
+
+.blog-prose {
+  color: var(--dark-text);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.75;
+}
+
+/* Headings */
+.blog-prose h1,
+.blog-prose h2,
+.blog-prose h3,
+.blog-prose h4 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--navy);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin-top: 2em;
+  margin-bottom: 0.6em;
+}
+.blog-prose h1 { font-size: 2rem; margin-top: 0; }
+.blog-prose h2 { font-size: 1.5rem; padding-bottom: 0.3em; border-bottom: 1px solid var(--teal-light); }
+.blog-prose h3 { font-size: 1.2rem; color: #1e3a56; }
+.blog-prose h4 { font-size: 1rem; color: #1e3a56; }
+
+/* Paragraphs */
+.blog-prose p {
+  margin-top: 0;
+  margin-bottom: 1.4em;
+}
+
+/* Links */
+.blog-prose a {
+  color: var(--teal);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  font-weight: 500;
+  transition: opacity 150ms ease;
+}
+.blog-prose a:hover { opacity: 0.75; }
+
+/* Lists */
+.blog-prose ul,
+.blog-prose ol {
+  padding-left: 1.6em;
+  margin-bottom: 1.4em;
+}
+.blog-prose ul { list-style: none; }
+.blog-prose ul > li { position: relative; padding-left: 0.4em; }
+.blog-prose ul > li::before {
+  content: "";
+  position: absolute;
+  left: -1em;
+  top: 0.6em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--teal);
+}
+.blog-prose ol { list-style: decimal; }
+.blog-prose li { margin-bottom: 0.4em; }
+.blog-prose li > ul,
+.blog-prose li > ol { margin-top: 0.4em; margin-bottom: 0; }
+
+/* Blockquote */
+.blog-prose blockquote {
+  border-left: 4px solid var(--teal);
+  margin-left: 0;
+  padding: 0.75em 1.25em;
+  background: var(--teal-light);
+  border-radius: 0 0.75rem 0.75rem 0;
+  font-style: italic;
+  color: var(--navy);
+  margin-bottom: 1.4em;
+}
+.blog-prose blockquote p { margin-bottom: 0; }
+
+/* Inline code */
+.blog-prose code:not(pre code) {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.88em;
+  background: var(--teal-light);
+  color: var(--navy);
+  padding: 0.15em 0.45em;
+  border-radius: 0.35em;
+  white-space: nowrap;
+}
+
+/* Code blocks */
+.blog-prose pre {
+  background: var(--navy);
+  color: #e2e8f0;
+  padding: 1.25em 1.5em;
+  border-radius: 0.75rem;
+  overflow-x: auto;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  margin-bottom: 1.4em;
+}
+.blog-prose pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+
+/* Tables */
+.blog-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1.4em;
+  font-size: 0.9em;
+}
+.blog-prose thead th {
+  background: var(--navy);
+  color: white;
+  font-family: var(--font-display);
+  font-weight: 600;
+  text-align: left;
+  padding: 0.65em 1em;
+  font-size: 0.85em;
+  letter-spacing: 0.03em;
+}
+.blog-prose thead th:first-child { border-radius: 0.5rem 0 0 0; }
+.blog-prose thead th:last-child  { border-radius: 0 0.5rem 0 0; }
+.blog-prose tbody td {
+  padding: 0.6em 1em;
+  border-bottom: 1px solid var(--teal-light);
+  color: var(--dark-text);
+  vertical-align: top;
+}
+.blog-prose tbody tr:nth-child(even) td { background: rgba(224,245,243,0.3); }
+.blog-prose tbody tr:last-child td { border-bottom: none; }
+
+/* HR */
+.blog-prose hr {
+  border: none;
+  border-top: 1px solid var(--teal-light);
+  margin: 2.5em 0;
+}
+
+/* Strong / Em */
+.blog-prose strong { font-weight: 600; color: var(--navy); }
+.blog-prose em { font-style: italic; }
+
+/* Images */
+.blog-prose img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.75rem;
+  margin: 1.5em 0;
+}
+
+/* ─── Reduced Motion ──────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+}

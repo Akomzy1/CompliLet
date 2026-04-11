@@ -1,0 +1,23 @@
+{
+  "name": "completion",
+  "language": "en",
+  "category": "UTILITY",
+  "components": [
+    {
+      "type": "HEADER",
+      "format": "TEXT",
+      "text": "✅ Screening Complete"
+    },
+    {
+      "type": "BODY",
+      "text": "Great news! Your screening is complete, {{1}} 🎉\n\nHere's your summary:\n• Right to Rent: {{2}}\n• Affordability check: {{3}}\n• References: {{4}}\n• Overall score: *{{5}}/100*\n\nYour landlord has been notified and will be in touch shortly.\n\nThank you for using CompliLet!",
+      "example": {
+        "body_text": [["Alex", "✅ Verified", "✅ Passed", "✅ Received", "87"]]
+      }
+    },
+    {
+      "type": "FOOTER",
+      "text": "CompliLet · complilet.co.uk"
+    }
+  ]
+}

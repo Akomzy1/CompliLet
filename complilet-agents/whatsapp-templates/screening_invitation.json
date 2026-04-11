@@ -1,0 +1,23 @@
+{
+  "name": "screening_invitation",
+  "language": "en",
+  "category": "UTILITY",
+  "components": [
+    {
+      "type": "HEADER",
+      "format": "TEXT",
+      "text": "Tenant Screening Request"
+    },
+    {
+      "type": "BODY",
+      "text": "Hi! I'm CompliLet 👋, {{1}}'s screening assistant.\n\nI help landlords verify tenant applications quickly and securely. I'll ask you a few questions and collect some documents — it usually takes about 10 minutes.\n\nReply *YES* to begin your screening, or *STOP* to decline.\n\nYour information is handled in line with UK GDPR and will only be shared with {{1}}.",
+      "example": {
+        "body_text": [["John Smith"]]
+      }
+    },
+    {
+      "type": "FOOTER",
+      "text": "CompliLet · complilet.co.uk"
+    }
+  ]
+}

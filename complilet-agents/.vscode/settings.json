@@ -1,0 +1,16 @@
+{
+  // Enable Deno LSP for the Edge Functions directory.
+  // This tells VS Code to use Deno's type checker (which knows about Deno.serve,
+  // Deno.env, etc.) rather than the TypeScript LSP for these files.
+  "deno.enable": true,
+  "deno.enablePaths": ["supabase/functions"],
+  "deno.lint": true,
+  "deno.unstable": true,
+  "deno.config": "supabase/functions/deno.json",
+
+  // Disable the built-in TypeScript language features for paths handled by Deno,
+  // so there are no duplicate errors from both LSPs.
+  "[typescript]": {
+    "editor.defaultFormatter": "denoland.vscode-deno"
+  }
+}

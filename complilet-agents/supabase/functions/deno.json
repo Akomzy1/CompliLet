@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "lib": ["deno.ns", "deno.unstable", "dom"]
+  },
+  "nodeModulesDir": "auto",
+  "imports": {
+    "@anthropic-ai/sdk": "npm:@anthropic-ai/sdk@0.24",
+    "@supabase/supabase-js": "npm:@supabase/supabase-js@2",
+    "pdf-lib": "npm:pdf-lib@1.17.1"
+  }
+}

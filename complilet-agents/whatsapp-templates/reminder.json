@@ -1,0 +1,18 @@
+{
+  "name": "reminder",
+  "language": "en",
+  "category": "UTILITY",
+  "components": [
+    {
+      "type": "BODY",
+      "text": "Hi {{1}} 👋\n\nFriendly reminder: your rent of *£{{2}}* is due on *{{3}}*.\n\nOnce paid, reply *PAID* to confirm receipt.\n\nIf you have any questions, reply *HELP*.",
+      "example": {
+        "body_text": [["Alex", "950", "1st May 2026"]]
+      }
+    },
+    {
+      "type": "FOOTER",
+      "text": "CompliLet Rent Monitor"
+    }
+  ]
+}
