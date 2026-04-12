@@ -192,7 +192,7 @@ const STEPS: Step[] = [
     number: 3,
     title: "Documents Get Verified",
     description:
-      "We ask the tenant to photograph their ID, payslip, and proof of address. Our AI checks every document: name matching, expiry dates, and authenticity flags. GDPR-compliant and encrypted.",
+      "The tenant photos their ID and proof of address. Employment and income are verified directly from HMRC, payroll, and bank records via Konfir — the tenant just clicks a link in a text message. No payslip uploads, no portals.",
     conversation: CONV_3,
     contactName: "CompliLet AI",
     contactAvatar: "C",

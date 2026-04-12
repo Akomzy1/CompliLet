@@ -21,7 +21,7 @@ export const FAQS = [
     id: "what-documents-checked",
     question: "What documents does CompliLet check?",
     answer:
-      "CompliLet verifies four document categories: government-issued photo ID (passport or UK driving licence) for identity; payslips or 3-month bank statements for income affordability; utility bills or bank letters for proof of address; and Home Office documents or share codes for Right to Rent compliance. Tenants photograph documents via WhatsApp and the AI validates name matching, expiry dates, and document authenticity indicators.",
+      "CompliLet verifies four areas: government-issued photo ID (passport or UK driving licence) for identity; employment and income verified directly from HMRC, payroll systems, and bank records via Konfir — tenants consent via a 30-second SMS link, no payslip upload required; utility bills or bank letters for proof of address; and Home Office documents or share codes for Right to Rent compliance. Konfir is UK Government DIATF certified, ICO registered, and part of Experian.",
   },
   {
     id: "right-to-rent-legally-valid",
@@ -51,7 +51,7 @@ export const FAQS = [
     id: "data-security",
     question: "Is my data safe?",
     answer:
-      "CompliLet is GDPR-compliant and ICO-registered. Tenant documents are encrypted at rest using AES-256 encryption and stored in access-controlled, UK-based cloud infrastructure. All documents are automatically deleted after 12 months in line with GDPR's data minimisation principle. CompliLet never sells or shares tenant data with third parties, and landlords can request full data deletion at any time via WhatsApp.",
+      "CompliLet is GDPR-compliant and ICO-registered. Tenant documents are encrypted at rest using AES-256 encryption and stored in access-controlled, UK-based cloud infrastructure. All documents are automatically deleted after 12 months in line with GDPR's data minimisation principle. Employment and income verification is handled by Konfir (part of Experian), which is UK Government DIATF certified, ICO registered, and ISO 27001 certified. CompliLet never sells or shares tenant data with third parties, and landlords can request full data deletion at any time via WhatsApp.",
   },
   {
     id: "human-support",

@@ -14,7 +14,7 @@ export const metadata: Metadata = buildMetadata({
 
 // ─── Last updated ─────────────────────────────────────────────────────────────
 
-const LAST_UPDATED = "11 April 2026";
+const LAST_UPDATED = "12 April 2026";
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -199,6 +199,14 @@ export default function PrivacyPage() {
               Vercel (hosting), both operating under UK/EEA-compliant data processing agreements.
             </li>
             <li>
+              <strong>With Konfir (part of Experian)</strong> — when a tenant&apos;s employment
+              and income is verified via the Konfir API, the tenant&apos;s name and phone number
+              are shared with Konfir solely for the purpose of conducting the verification. Konfir
+              is UK Government DIATF certified, ICO registered, ISO 27001 certified, and operates
+              under a UK GDPR-compliant data processing agreement. Tenant consent is obtained
+              directly by Konfir via SMS before any employment or income data is retrieved.
+            </li>
+            <li>
               <strong>With the Home Office</strong> — if a tenant&apos;s Right to Rent expires and they
               cannot demonstrate a renewed right to rent, the landlord (not CompliLet) is legally
               required to report this to the Home Office under the Immigration Act 2014.
@@ -268,7 +276,9 @@ export default function PrivacyPage() {
           <p>
             All personal data processed by CompliLet is stored in UK or EEA-based infrastructure.
             We do not transfer personal data to countries outside the UK or EEA. Our sub-processors
-            (Supabase, Vercel, Stripe) operate under UK GDPR-compliant data processing agreements.
+            (Supabase, Vercel, Stripe, Konfir) operate under UK GDPR-compliant data processing
+            agreements. Konfir is headquartered in the UK and processes all verification data
+            within UK/EEA infrastructure.
           </p>
 
           <h2>12. Changes to This Policy</h2>

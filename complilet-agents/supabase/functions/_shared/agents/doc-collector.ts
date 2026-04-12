@@ -27,6 +27,17 @@ import type {
   DocumentCategory,
 } from "../types.ts";
 
+// ─── Konfir feature flag ───────────────────────────────────────────────────
+// Phase 1 (default): Claude vision validates payslip photos sent via WhatsApp.
+// Phase 2 (Konfir):  Set KONFIR_ENABLED=true to switch to API-based verification.
+//                    Konfir contacts the tenant by SMS, pulls employment + income
+//                    data directly from HMRC, payroll systems, and Open Banking,
+//                    then posts results to the /konfir-callback Edge Function.
+
+export function isKonfirEnabled(): boolean {
+  return Deno.env.get("KONFIR_ENABLED") === "true";
+}
+
 // ─── Public interface ──────────────────────────────────────────────────────
 
 export interface DocCollectorInput {
@@ -299,11 +310,14 @@ async function handleDocumentSubmission(ctx: SubmissionContext): Promise<void> {
   if (nextAfterThis) {
     const confirmText = buildConfirmationMessage(docCategory, validation);
     await sendTextMessage(tenantPhone, confirmText);
-    // Small pause then ask for next.
-    await sendTextMessage(
-      tenantPhone,
-      DOC_REQUEST_MESSAGES[nextAfterThis],
-    );
+
+    // Phase 2: Konfir handles income verification — no payslip photo needed.
+    if (nextAfterThis === "proof_of_income" && isKonfirEnabled()) {
+      await initiateKonfirVerification(tenantPhone, tenantName ?? "Tenant", sessionId);
+    } else {
+      // Phase 1: ask tenant to photograph their document.
+      await sendTextMessage(tenantPhone, DOC_REQUEST_MESSAGES[nextAfterThis]);
+    }
   }
 }
 
@@ -678,10 +692,17 @@ async function buildSystemPrompt(ctx: {
       : `- ${DOC_LABELS[cat]}: ⏳ Still needed`;
   }).join("\n");
 
+  const konfirLine = isKonfirEnabled() && ctx.nextRequired === "proof_of_income"
+    ? "**Income verification method**: Konfir API (Phase 2) — a Konfir SMS has been sent to the tenant. Do NOT ask for a payslip photo. Tell the tenant to check their SMS and follow the Konfir link."
+    : isKonfirEnabled()
+    ? "**Income verification method**: Konfir API (Phase 2) — income will be verified automatically via Konfir SMS when the time comes."
+    : "**Income verification method**: Phase 1 — ask tenant to send a payslip photo or bank statement via WhatsApp.";
+
   const contextBlock = [
     "## Current Session State (do not share with tenant)\n",
     `**Tenant name from pre-qualification**: ${ctx.tenantName ?? "Not yet known"}`,
     `**Next required document**: ${ctx.nextRequired ? DOC_LABELS[ctx.nextRequired] : "All documents collected!"}`,
+    konfirLine,
     "\n**Document collection progress**:",
     collectedSummary,
     "",
@@ -793,6 +814,125 @@ function buildRejectionMessage(
   }
 
   return `I couldn't verify that document. Could you try sending it again? If you're having trouble, reply *HELP*.`;
+}
+
+// ─── Konfir API — Phase 2 income verification ─────────────────────────────
+//
+// When KONFIR_ENABLED=true, instead of asking the tenant to send a payslip photo
+// we call the Konfir API which sends the tenant an SMS. The tenant consents in
+// ~30 seconds and Konfir pulls employment + income data directly from HMRC,
+// payroll systems, and Open Banking. Results arrive via the konfir-callback
+// Edge Function which calls handleKonfirCallback() below.
+//
+// Phase 1 (payslip + Claude vision) remains the default and is unaffected.
+
+const KONFIR_API_URL = "https://api.konfir.com/v1/verifications";
+
+export async function initiateKonfirVerification(
+  tenantPhone: string,
+  tenantName: string,
+  sessionId: string,
+): Promise<void> {
+  const konfirApiKey = Deno.env.get("KONFIR_API_KEY");
+  if (!konfirApiKey) {
+    throw new Error("KONFIR_API_KEY is not set — cannot initiate Konfir verification");
+  }
+
+  const baseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  const webhookUrl = `${baseUrl}/functions/v1/konfir-callback?session=${sessionId}`;
+
+  const response = await fetch(KONFIR_API_URL, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${konfirApiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      candidate: { name: tenantName, phone: tenantPhone },
+      checks: ["employment", "income"],
+      webhook_url: webhookUrl,
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Konfir API error ${response.status}: ${body}`);
+  }
+
+  // Tell the tenant to expect the Konfir SMS.
+  await sendTextMessage(
+    tenantPhone,
+    "You'll receive an SMS from *Konfir* shortly to verify your employment and income. " +
+    "Just follow the link and give consent — it takes about 30 seconds. No documents needed. 📲\n\n" +
+    "_Konfir is a UK Government certified employment verification service (part of Experian). " +
+    "Your data is used only for this tenancy application._",
+  );
+}
+
+/**
+ * Called by the konfir-callback Edge Function when Konfir posts verification results.
+ * Stores a proof_of_income document record and returns the CollectedDoc for state update.
+ */
+export async function handleKonfirCallback(
+  sessionId: string,
+  landlordId: string,
+  report: KonfirReport,
+): Promise<CollectedDoc> {
+  const validationNotes = {
+    employer:              report.employer_name,
+    job_title:             report.job_title,
+    tenure_months:         report.tenure_months,
+    gross_monthly_income:  report.gross_monthly_income,
+    net_monthly_income:    report.net_monthly_income,
+    employment_start_date: report.employment_start_date,
+    gaps_flagged:          report.gaps ?? [],
+    verification_sources:  report.sources,
+  };
+
+  const { error } = await supabase.from("documents").insert({
+    session_id:       sessionId,
+    landlord_id:      landlordId,
+    category:         "proof_of_income" as DocumentCategory,
+    document_type:    "konfir_verification",
+    storage_path:     null,
+    passed:           true,
+    issues:           [],
+    confidence:       "high",
+    extracted_data: {
+      employerName: report.employer_name,
+      grossIncome:  report.gross_monthly_income,
+      netIncome:    report.net_monthly_income,
+      konfirNotes:  validationNotes,
+    },
+    validation_notes: JSON.stringify(validationNotes),
+    created_at:       new Date().toISOString(),
+  });
+
+  if (error) {
+    console.error("handleKonfirCallback: failed to persist document:", error.message);
+  }
+
+  return {
+    category:             "proof_of_income",
+    storagePath:          "",
+    documentType:         "konfir_verification",
+    extractedEmployer:    report.employer_name,
+    extractedGrossIncome: report.gross_monthly_income,
+    validatedAt:          new Date().toISOString(),
+    confidence:           "high",
+  };
+}
+
+/** Shape of the Konfir verification report posted to our webhook. */
+export interface KonfirReport {
+  employer_name:         string;
+  job_title:             string;
+  tenure_months:         number;
+  gross_monthly_income:  number;
+  net_monthly_income:    number;
+  employment_start_date: string;
+  gaps?:                 string[];
+  sources:               string[];   // e.g. ["hmrc", "payroll", "open_banking"]
 }
 
 // ─── Agent logging ─────────────────────────────────────────────────────────

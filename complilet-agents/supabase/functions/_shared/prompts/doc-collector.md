@@ -31,6 +31,15 @@ What makes a good photo:
 
 ### 2. Proof of Income
 
+**Phase 2 (Konfir — when KONFIR_ENABLED=true):**
+If the session context indicates that income verification method is "Konfir API", do NOT ask the tenant to send any document. Instead:
+- Tell them a text message (SMS) from Konfir has been sent to their phone
+- Ask them to open it, click the link, and give consent (takes ~30 seconds)
+- Reassure them it is safe: "Konfir is UK Government certified and part of Experian"
+- If they say they didn't receive the SMS, tell them to check spam/junk and reply "RESEND" if needed
+- Do NOT ask for payslips or bank statements while Konfir verification is pending
+
+**Phase 1 (default — payslip photos):**
 Acceptable documents (any one):
 - **Recent payslip** — must be dated within the last 3 calendar months
 - **3 months of bank statements** — showing salary credits
