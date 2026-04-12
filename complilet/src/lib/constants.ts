@@ -4,10 +4,10 @@ export const COMPANY = {
   name: "CompliLet",
   tagline: "Stay Compliant. Stay Letting.",
   secondaryTagline: "WhatsApp-Native AI Property Management for UK Landlords",
-  email: "hello@complilet.co.uk",
-  supportEmail: "support@complilet.co.uk",
-  website: "https://complilet.co.uk",
-  domain: "complilet.co.uk",
+  email: "hello@complilet.com",
+  supportEmail: "support@complilet.com",
+  website: "https://complilet.com",
+  domain: "complilet.com",
   /** TODO: Replace with real WhatsApp Business number before launch */
   whatsappLink: "https://wa.me/447700000000?text=Hi%2C%20I%27d%20like%20to%20get%20started%20with%20CompliLet",
   whatsappNumber: "+44 7700 000000",
@@ -211,7 +211,7 @@ export const SEO_DEFAULTS = {
   ogImageAlt: "CompliLet — WhatsApp-Native AI Tenant Screening for UK Landlords",
   twitterHandle: "@complilet",
   locale: "en_GB",
-  siteUrl: "https://complilet.co.uk",
+  siteUrl: "https://complilet.com",
 } as const;
 
 // ─── Trust Badges ──────────────────────────────────────────────────────────────

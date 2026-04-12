@@ -182,7 +182,7 @@ async function buildSummary(): Promise<{ short: string; detail: string }> {
     `- API calls today: ${agentCallsToday ?? 0}`,
     `- Cost today: ${costFormatted}`,
     "",
-    `View dashboard: ${Deno.env.get("ADMIN_DASHBOARD_URL") ?? "https://admin.complilet.co.uk"}/internal`,
+    `View dashboard: ${Deno.env.get("ADMIN_DASHBOARD_URL") ?? "https://admin.complilet.com"}/internal`,
   ].join("\n");
 
   return { short, detail };

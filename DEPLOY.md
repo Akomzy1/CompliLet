@@ -110,9 +110,9 @@ Expected: **8 rows**, all `active = true`:
 
 In Supabase dashboard → Authentication → URL Configuration:
 
-- Site URL: `https://admin.complilet.co.uk`
+- Site URL: `https://admin.complilet.com`
 - Additional redirect URLs:
-  - `https://admin.complilet.co.uk/auth/callback`
+  - `https://admin.complilet.com/auth/callback`
   - `http://localhost:3001/auth/callback` (local dev only)
 
 - [ ] Auth URLs configured
@@ -137,13 +137,13 @@ supabase secrets set \
   STRIPE_PRICE_TENANCY_MANAGER="price_..." \
   STRIPE_PRICE_PORTFOLIO="price_..." \
   STRIPE_PRICE_GLOBAL_LANDLORD="price_..." \
-  STRIPE_SUCCESS_URL="https://complilet.co.uk/payment/success" \
-  STRIPE_CANCEL_URL="https://complilet.co.uk/payment/cancel" \
-  DASHBOARD_ORIGIN="https://complilet.co.uk" \
+  STRIPE_SUCCESS_URL="https://complilet.com/payment/success" \
+  STRIPE_CANCEL_URL="https://complilet.com/payment/cancel" \
+  DASHBOARD_ORIGIN="https://complilet.com" \
   ESCALATION_URGENT_PHONE="447700000000" \
   ESCALATION_HIGH_PHONE="447700000001" \
   ADMIN_PHONES="447700000002" \
-  ADMIN_DASHBOARD_URL="https://admin.complilet.co.uk" \
+  ADMIN_DASHBOARD_URL="https://admin.complilet.com" \
   --project-ref YOUR_PROJECT_REF
 ```
 
@@ -375,7 +375,7 @@ In Vercel → Project → Settings → Environment Variables:
 
 | Variable | Environment | Value |
 |---|---|---|
-| `NEXT_PUBLIC_SITE_URL` | Production | `https://complilet.co.uk` |
+| `NEXT_PUBLIC_SITE_URL` | Production | `https://complilet.com` |
 | `NEXT_PUBLIC_SUPABASE_URL` | All | `https://YOUR_REF.supabase.co` |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | All | `eyJ...` (anon key) |
 | `SUPABASE_SERVICE_ROLE_KEY` | All | `eyJ...` (service role) |
@@ -387,12 +387,12 @@ In Vercel → Project → Settings → Environment Variables:
 ### 6c. Add custom domain
 
 1. Vercel → Project → Settings → Domains → **Add**
-2. Add `complilet.co.uk` and `www.complilet.co.uk`
+2. Add `complilet.com` and `www.complilet.com`
 3. Add DNS records at your registrar (Vercel provides the exact records)
 4. Wait for SSL certificate (usually < 5 minutes)
 
-- [ ] `complilet.co.uk` resolves and shows the site
-- [ ] `www.complilet.co.uk` redirects to `complilet.co.uk`
+- [ ] `complilet.com` resolves and shows the site
+- [ ] `www.complilet.com` redirects to `complilet.com`
 - [ ] SSL certificate active
 
 ### 6d. Deploy
@@ -403,14 +403,14 @@ vercel --prod
 ```
 
 - [ ] Production build succeeds (no build errors)
-- [ ] Site loads at `https://complilet.co.uk`
+- [ ] Site loads at `https://complilet.com`
 
 ### 6e. Sitemap and robots.txt
 
 The `postbuild` script runs `next-sitemap` automatically on every deploy.
 
-- [ ] `https://complilet.co.uk/sitemap.xml` returns valid XML
-- [ ] `https://complilet.co.uk/robots.txt` is present and correct
+- [ ] `https://complilet.com/sitemap.xml` returns valid XML
+- [ ] `https://complilet.com/robots.txt` is present and correct
 - [ ] No `/internal` or `/api` paths in the sitemap
 
 ---
@@ -434,19 +434,19 @@ In Vercel → Project → Settings → Environment Variables:
 | `NEXT_PUBLIC_SUPABASE_URL` | `https://YOUR_REF.supabase.co` |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `eyJ...` (anon key) |
 | `SUPABASE_SERVICE_ROLE_KEY` | `eyJ...` (service role — server-side only) |
-| `ADMIN_EMAIL_ALLOWLIST` | `admin@complilet.co.uk` (comma-separated for multiple admins) |
+| `ADMIN_EMAIL_ALLOWLIST` | `admin@complilet.com` (comma-separated for multiple admins) |
 | `STRIPE_SECRET_KEY` | `sk_live_...` |
-| `NEXT_PUBLIC_ADMIN_URL` | `https://admin.complilet.co.uk` |
+| `NEXT_PUBLIC_ADMIN_URL` | `https://admin.complilet.com` |
 
 - [ ] All environment variables set
 
 ### 7c. Add custom domain
 
-1. Vercel → Project → Settings → Domains → **Add** → `admin.complilet.co.uk`
+1. Vercel → Project → Settings → Domains → **Add** → `admin.complilet.com`
 2. Add DNS record at registrar
 3. Wait for SSL certificate
 
-- [ ] `admin.complilet.co.uk` resolves
+- [ ] `admin.complilet.com` resolves
 - [ ] SSL certificate active
 
 ### 7d. Deploy and verify
@@ -456,7 +456,7 @@ cd complilet-admin
 vercel --prod
 ```
 
-- [ ] Login page loads at `https://admin.complilet.co.uk/login`
+- [ ] Login page loads at `https://admin.complilet.com/login`
 - [ ] Sign in with an allowlisted email → redirects to `/internal`
 - [ ] Non-allowlisted email is rejected with "Access denied" message
 - [ ] Dashboard page shows (numbers may all be zero at this point)
@@ -467,9 +467,9 @@ vercel --prod
 
 ### 8a. Google Search Console
 
-1. search.google.com/search-console → **Add property** → Domain type → `complilet.co.uk`
+1. search.google.com/search-console → **Add property** → Domain type → `complilet.com`
 2. Verify ownership via DNS TXT record at your registrar
-3. After verified: Sitemaps → Submit `https://complilet.co.uk/sitemap.xml`
+3. After verified: Sitemaps → Submit `https://complilet.com/sitemap.xml`
 4. Request indexing on the homepage
 
 - [ ] Domain property created and verified
@@ -484,7 +484,7 @@ vercel --prod
 4. Update `NEXT_PUBLIC_GA_MEASUREMENT_ID` in Vercel env → redeploy
 
 Verify:
-- Open `https://complilet.co.uk` in an incognito window
+- Open `https://complilet.com` in an incognito window
 - GA4 → Reports → Realtime → confirm 1 active user
 
 - [ ] GA4 property created
@@ -545,8 +545,8 @@ Use [Open Graph Debugger](https://developers.facebook.com/tools/debug/) on each 
 
 ### Legal (required before collecting payments)
 
-- [ ] Privacy Policy live at `https://complilet.co.uk/privacy`
-- [ ] Terms of Service live at `https://complilet.co.uk/terms`
+- [ ] Privacy Policy live at `https://complilet.com/privacy`
+- [ ] Terms of Service live at `https://complilet.com/terms`
 - [ ] Cookie/consent banner present for GA4
 - [ ] ICO registration completed (required for processing personal data in UK)
 - [ ] Stripe Checkout shows correct business name and logo
@@ -554,7 +554,7 @@ Use [Open Graph Debugger](https://developers.facebook.com/tools/debug/) on each 
 ### Performance
 
 ```bash
-npx lighthouse https://complilet.co.uk --output=html --output-path=./lighthouse.html
+npx lighthouse https://complilet.com --output=html --output-path=./lighthouse.html
 open lighthouse.html
 ```
 
@@ -577,7 +577,7 @@ Minimum before launch:
 - [ ] Stripe switched to live mode with live secrets
 - [ ] First real landlord account created via WhatsApp
 - [ ] First end-to-end screening completed manually (watch Supabase logs in real-time)
-- [ ] Admin panel shows first landlord at `https://admin.complilet.co.uk/internal/landlords`
+- [ ] Admin panel shows first landlord at `https://admin.complilet.com/internal/landlords`
 - [ ] First daily admin summary received at 8 PM UK time
 
 ---
@@ -599,7 +599,7 @@ If a critical issue is found after go-live:
 | Daily (automated) | Admin daily summary WhatsApp at 8 PM |
 | Daily | Check Supabase Edge Function error logs for exceptions |
 | Daily | Check Stripe → Webhooks → Recent events for delivery failures |
-| Weekly | Review escalations at `admin.complilet.co.uk/internal/escalations` |
+| Weekly | Review escalations at `admin.complilet.com/internal/escalations` |
 | Weekly | Check GSC for crawl/index errors |
 | Monthly | Review GA4 and Vercel Analytics for user trends |
 | Monthly | Check WhatsApp template performance in Meta Business Manager |

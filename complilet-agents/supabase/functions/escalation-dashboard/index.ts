@@ -33,7 +33,7 @@
  *     Response 200: { ok: true }
  *
  * CORS: Allows the internal dashboard origin. Set DASHBOARD_ORIGIN env var
- * (default: https://app.complilet.co.uk).
+ * (default: https://app.complilet.com).
  */
 
 import { supabase } from "../_shared/supabase.ts";
@@ -76,7 +76,7 @@ const PRIORITY_WEIGHT: Record<string, number> = {
 
 function corsHeaders(req: Request): Record<string, string> {
   const allowedOrigin =
-    Deno.env.get("DASHBOARD_ORIGIN") ?? "https://app.complilet.co.uk";
+    Deno.env.get("DASHBOARD_ORIGIN") ?? "https://app.complilet.com";
 
   const origin = req.headers.get("Origin") ?? "";
   const effectiveOrigin =

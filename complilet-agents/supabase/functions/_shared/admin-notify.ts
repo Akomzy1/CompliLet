@@ -61,7 +61,7 @@ export async function notifyAdmin(payload: AdminAlertPayload): Promise<void> {
     return;
   }
 
-  const dashboardUrl = Deno.env.get("ADMIN_DASHBOARD_URL") ?? "https://admin.complilet.co.uk";
+  const dashboardUrl = Deno.env.get("ADMIN_DASHBOARD_URL") ?? "https://admin.complilet.com";
   const path = payload.dashboardPath ?? "/internal";
   const icon = {
     urgent_escalation: "🚨",

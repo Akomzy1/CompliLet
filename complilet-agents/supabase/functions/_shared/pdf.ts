@@ -256,7 +256,7 @@ export async function generateRightToRentCertificate(
 
   // ── Footer ────────────────────────────────────────────────────────────────
   page.drawRectangle({ x: 0, y: 0, width: A4_WIDTH, height: 28, color: NAVY });
-  page.drawText("complilet.co.uk  ·  Regulated under UK GDPR  ·  CompliLet Ltd", {
+  page.drawText("complilet.com  ·  Regulated under UK GDPR  ·  CompliLet Ltd", {
     x: MARGIN,
     y: 10,
     size: 7.5,
@@ -671,7 +671,7 @@ export async function generateMoveInPack(p: MoveInPackParams): Promise<Uint8Arra
   const generatedLabel = `Generated ${formatDate(p.generatedAt)}`;
   for (const pg of doc.getPages()) {
     pg.drawRectangle({ x: 0, y: 0, width: A4_WIDTH, height: 28, color: NAVY });
-    pg.drawText("complilet.co.uk  ·  CompliLet Ltd  ·  Regulated under UK GDPR", {
+    pg.drawText("complilet.com  ·  CompliLet Ltd  ·  Regulated under UK GDPR", {
       x: MARGIN, y: 10, size: 7.5, font: regular, color: rgb(0.60, 0.75, 0.73),
     });
     pg.drawText(generatedLabel, {

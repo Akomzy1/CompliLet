@@ -1,6 +1,6 @@
 /** @type {import('next-sitemap').IConfig} */
 const config = {
-  siteUrl: process.env.NEXT_PUBLIC_SITE_URL || "https://complilet.co.uk",
+  siteUrl: process.env.NEXT_PUBLIC_SITE_URL || "https://complilet.com",
   generateRobotsTxt: true,
   generateIndexSitemap: false,
   sitemapSize: 5000,

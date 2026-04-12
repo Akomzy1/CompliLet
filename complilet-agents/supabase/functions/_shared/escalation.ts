@@ -463,7 +463,7 @@ async function alertHandler(
 ): Promise<boolean> {
   const urgentPhone  = Deno.env.get("ESCALATION_URGENT_PHONE");
   const highPhone    = Deno.env.get("ESCALATION_HIGH_PHONE") ?? urgentPhone;
-  const dashboardUrl = Deno.env.get("ESCALATION_DASHBOARD_URL") ?? "https://app.complilet.co.uk/escalations";
+  const dashboardUrl = Deno.env.get("ESCALATION_DASHBOARD_URL") ?? "https://app.complilet.com/escalations";
 
   const handlerPhone =
     params.priority === "urgent" ? urgentPhone :

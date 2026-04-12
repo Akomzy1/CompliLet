@@ -17,7 +17,7 @@
  *   STRIPE_PRICE_TENANCY_MANAGER — price_… (recurring monthly metered, £14.99)
  *   STRIPE_PRICE_PORTFOLIO       — price_… (recurring monthly, £39.99)
  *   STRIPE_PRICE_GLOBAL_LANDLORD — price_… (recurring monthly metered, £29.99)
- *   STRIPE_SUCCESS_URL           — URL Stripe redirects to after payment (e.g. https://app.complilet.co.uk/payment/success)
+ *   STRIPE_SUCCESS_URL           — URL Stripe redirects to after payment (e.g. https://app.complilet.com/payment/success)
  *   STRIPE_CANCEL_URL            — URL Stripe redirects to on cancel
  *
  * Database columns required on `landlords`:
@@ -226,10 +226,10 @@ export async function createPayPerScreenCheckout(
 
   const successUrl =
     Deno.env.get("STRIPE_SUCCESS_URL") ??
-    "https://app.complilet.co.uk/payment/success";
+    "https://app.complilet.com/payment/success";
   const cancelUrl =
     Deno.env.get("STRIPE_CANCEL_URL") ??
-    "https://app.complilet.co.uk/payment/cancel";
+    "https://app.complilet.com/payment/cancel";
 
   const session = await stripe.checkout.sessions.create({
     customer: customerId,
@@ -280,10 +280,10 @@ export async function createSubscriptionCheckout(
 
   const successUrl =
     Deno.env.get("STRIPE_SUCCESS_URL") ??
-    "https://app.complilet.co.uk/payment/success";
+    "https://app.complilet.com/payment/success";
   const cancelUrl =
     Deno.env.get("STRIPE_CANCEL_URL") ??
-    "https://app.complilet.co.uk/payment/cancel";
+    "https://app.complilet.com/payment/cancel";
 
   const lineItem: Stripe.Checkout.SessionCreateParams.LineItem = METERED_PLANS.has(plan)
     ? { price: priceId(plan) }                        // metered: no quantity

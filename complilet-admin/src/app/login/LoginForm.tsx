@@ -60,7 +60,7 @@ export function LoginForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           className="w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-2.5 text-white placeholder-gray-500 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
-          placeholder="admin@complilet.co.uk"
+          placeholder="admin@complilet.com"
         />
       </div>
 
