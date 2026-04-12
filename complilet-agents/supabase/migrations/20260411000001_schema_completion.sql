@@ -1,6 +1,6 @@
 -- =============================================================================
 -- CompliLet — Schema Completion
--- Migration: 20260412000003_schema_completion.sql
+-- Migration: 20260411000001_schema_completion.sql
 --
 -- Fills gaps between initial_schema (20260411000000) and subsequent migrations.
 -- Safe to re-run: all statements use IF NOT EXISTS / IF EXISTS / OR REPLACE.
