@@ -56,7 +56,7 @@
   "redirects": [
     {
       "source": "/app",
-      "destination": "https://app.complilet.co.uk",
+      "destination": "https://app.complilet.com",
       "permanent": false
     },
     {
@@ -66,9 +66,5 @@
     }
   ],
 
-  "crons": [],
-
-  "env": {
-    "NEXT_PUBLIC_SITE_URL": "@complilet-site-url"
-  }
+  "crons": []
 }
