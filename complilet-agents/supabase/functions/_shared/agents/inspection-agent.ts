@@ -56,7 +56,7 @@
  * Called by: coordinator.ts → routeActiveTenancy (inspection keyword or tenant photo)
  */
 
-import Anthropic from "@anthropic-ai/sdk";
+import Anthropic from "npm:@anthropic-ai/sdk@0.24";
 import {
   PDFDocument,
   StandardFonts,

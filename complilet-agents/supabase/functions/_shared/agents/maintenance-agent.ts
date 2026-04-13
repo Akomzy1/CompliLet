@@ -42,7 +42,7 @@
  * Called by: coordinator.ts → routeActiveTenancy
  */
 
-import Anthropic from "@anthropic-ai/sdk";
+import Anthropic from "npm:@anthropic-ai/sdk@0.24";
 import { supabase } from "../supabase.ts";
 import { sendTextMessage } from "../whatsapp.ts";
 import {

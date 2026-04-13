@@ -38,6 +38,24 @@ export function isKonfirEnabled(): boolean {
   return Deno.env.get("KONFIR_ENABLED") === "true";
 }
 
+/** Plans that include Konfir income verification (Landlord Pro and above). */
+const KONFIR_ELIGIBLE_PLANS = ["pro", "tenancy_manager", "portfolio", "global_landlord"] as const;
+
+export function isKonfirEligiblePlan(plan: string | null | undefined): boolean {
+  if (!plan) return false;
+  return (KONFIR_ELIGIBLE_PLANS as readonly string[]).includes(plan);
+}
+
+/**
+ * Returns true when both the global KONFIR_ENABLED flag is set AND the
+ * landlord's plan qualifies (Pro and above). Pay-Per-Screen always uses Phase 1.
+ */
+export async function shouldUseKonfir(landlordId: string): Promise<boolean> {
+  if (!isKonfirEnabled()) return false;
+  const { data } = await supabase.from("landlords").select("plan").eq("id", landlordId).single();
+  return isKonfirEligiblePlan((data as { plan?: string } | null)?.plan);
+}
+
 // ─── Public interface ──────────────────────────────────────────────────────
 
 export interface DocCollectorInput {
@@ -170,6 +188,7 @@ export async function runDocCollector(input: DocCollectorInput): Promise<void> {
     await handleTextMessage({
       message,
       sessionId,
+      landlordId,
       tenantPhone,
       tenantName,
       collected,
@@ -311,8 +330,9 @@ async function handleDocumentSubmission(ctx: SubmissionContext): Promise<void> {
     const confirmText = buildConfirmationMessage(docCategory, validation);
     await sendTextMessage(tenantPhone, confirmText);
 
-    // Phase 2: Konfir handles income verification — no payslip photo needed.
-    if (nextAfterThis === "proof_of_income" && isKonfirEnabled()) {
+    // Phase 2: Konfir handles income verification for Pro and above.
+    // Pay-Per-Screen always uses Phase 1 (payslip photo + Claude vision).
+    if (nextAfterThis === "proof_of_income" && await shouldUseKonfir(landlordId)) {
       await initiateKonfirVerification(tenantPhone, tenantName ?? "Tenant", sessionId);
     } else {
       // Phase 1: ask tenant to photograph their document.
@@ -326,6 +346,7 @@ async function handleDocumentSubmission(ctx: SubmissionContext): Promise<void> {
 interface TextContext {
   message: ParsedMessage;
   sessionId: string;
+  landlordId: string;
   tenantPhone: string;
   tenantName?: string;
   collected: CollectedDocuments;
@@ -336,6 +357,7 @@ async function handleTextMessage(ctx: TextContext): Promise<void> {
   const {
     message,
     sessionId,
+    landlordId,
     tenantPhone,
     tenantName,
     collected,
@@ -350,6 +372,7 @@ async function handleTextMessage(ctx: TextContext): Promise<void> {
     collected,
     tenantName,
     nextRequired,
+    landlordId,
   });
 
   const anthropic = new Anthropic({ apiKey: Deno.env.get("ANTHROPIC_API_KEY") });
@@ -681,6 +704,7 @@ async function buildSystemPrompt(ctx: {
   collected: CollectedDocuments;
   tenantName?: string;
   nextRequired: DocumentCategory | null;
+  landlordId?: string;
 }): Promise<string> {
   const promptPath = new URL("../prompts/doc-collector.md", import.meta.url);
   const basePrompt = await Deno.readTextFile(promptPath);
@@ -692,10 +716,11 @@ async function buildSystemPrompt(ctx: {
       : `- ${DOC_LABELS[cat]}: ⏳ Still needed`;
   }).join("\n");
 
-  const konfirLine = isKonfirEnabled() && ctx.nextRequired === "proof_of_income"
+  const useKonfir = ctx.landlordId ? await shouldUseKonfir(ctx.landlordId) : false;
+  const konfirLine = useKonfir && ctx.nextRequired === "proof_of_income"
     ? "**Income verification method**: Konfir API (Phase 2) — a Konfir SMS has been sent to the tenant. Do NOT ask for a payslip photo. Tell the tenant to check their SMS and follow the Konfir link."
-    : isKonfirEnabled()
-    ? "**Income verification method**: Konfir API (Phase 2) — income will be verified automatically via Konfir SMS when the time comes."
+    : useKonfir
+    ? "**Income verification method**: Konfir API (Phase 2) — income will be verified automatically via Konfir SMS when the time comes. Do NOT ask for a payslip photo."
     : "**Income verification method**: Phase 1 — ask tenant to send a payslip photo or bank statement via WhatsApp.";
 
   const contextBlock = [

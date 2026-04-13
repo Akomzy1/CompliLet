@@ -134,7 +134,7 @@ const FEATURES: Feature[] = [
     icon: IconShieldCheck,
     title: "Document Verification",
     description:
-      "ID and address verified via WhatsApp photo. Employment and income verified directly from HMRC, payroll, and bank records via Konfir — no payslip upload needed.",
+      "Tenants photograph their ID, payslips, and proof of address. Our AI validates names, dates, expiry, and detects fraud indicators. Pro subscribers get Konfir-verified income — verified directly from HMRC, payroll, and bank records. No documents to fake.",
   },
   {
     id: "right-to-rent",

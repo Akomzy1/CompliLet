@@ -6,7 +6,7 @@
 -- ── Schedule: daily admin summary at 8 PM UK time (UTC+1 in summer) ──────────
 -- Using 19:00 UTC which equals 8 PM BST. Adjust for GMT (20:00 UTC) in winter.
 -- For simplicity we schedule at 20:00 UTC (covers GMT; BST will be 9 PM).
-SELECT cron.unschedule('complilet_daily_admin_summary');
+SELECT cron.unschedule(jobid) FROM cron.job WHERE jobname = 'complilet_daily_admin_summary';
 SELECT cron.schedule(
   'complilet_daily_admin_summary',
   '0 20 * * *',  -- 20:00 UTC = 8 PM GMT / 9 PM BST

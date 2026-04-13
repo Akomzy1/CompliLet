@@ -17,7 +17,7 @@
  * This function is only active when KONFIR_ENABLED=true.
  */
 
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from "npm:@supabase/supabase-js";
 import { handleKonfirCallback, type KonfirReport } from "../_shared/agents/doc-collector.ts";
 import { sendTextMessage } from "../_shared/whatsapp.ts";
 

@@ -193,7 +193,18 @@ export async function runMoveInPack(input: MoveInPackInput): Promise<void> {
         `I'll send reminders for all compliance deadlines. Type *STATUS* at any time for an overview.`,
     );
 
-    // ── 10. Advance session ───────────────────────────────────────────────
+    // ── 10. Pay-Per-Screen upsell ─────────────────────────────────────────
+    if (data.landlordPlan === "pay_per_screen") {
+      await sendTextMessage(
+        landlordPhone,
+        "✅ Screening complete! Note: income was verified from payslip photos.\n\n" +
+        "With *Landlord Pro* (£19.99/month), your tenants' income and employment are verified " +
+        "directly from HMRC, payroll, and bank records via Konfir — impossible to fake. " +
+        "Reply *upgrade* to switch to Pro.",
+      ).catch(() => {}); // Non-fatal — don't let upsell block session advance
+    }
+
+    // ── 11. Advance session ───────────────────────────────────────────────
     await onHandoff(SESSION_STATUS.ACTIVE_TENANCY, { tenancyId: tenancyId ?? null });
 
   } catch (err) {
@@ -212,6 +223,7 @@ interface ScreeningData {
   tenantName:        string;
   tenantPhone:       string;
   landlordName:      string;
+  landlordPlan:      string | null;
   propertyAddress:   string;
   monthlyRentGbp:    number;
   screeningScore:    number;
@@ -257,7 +269,7 @@ async function loadScreeningData(
   // Landlord.
   const { data: landlord } = await supabase
     .from("landlords")
-    .select("full_name, whatsapp_number")
+    .select("full_name, whatsapp_number, plan")
     .eq("id", landlordId)
     .single();
 
@@ -297,6 +309,7 @@ async function loadScreeningData(
     tenantName:        (preQual.name as string) ?? session.tenant_phone as string,
     tenantPhone:       session.tenant_phone as string,
     landlordName:      landlord?.full_name as string ?? "Landlord",
+    landlordPlan:      (landlord as { plan?: string } | null)?.plan ?? null,
     propertyAddress:   session.property_address as string,
     monthlyRentGbp:    (session.monthly_rent_gbp as number) ?? 0,
     screeningScore:    score,

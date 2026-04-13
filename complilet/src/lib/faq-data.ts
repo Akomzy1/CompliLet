@@ -21,7 +21,7 @@ export const FAQS = [
     id: "what-documents-checked",
     question: "What documents does CompliLet check?",
     answer:
-      "CompliLet verifies four areas: government-issued photo ID (passport or UK driving licence) for identity; employment and income verified directly from HMRC, payroll systems, and bank records via Konfir — tenants consent via a 30-second SMS link, no payslip upload required; utility bills or bank letters for proof of address; and Home Office documents or share codes for Right to Rent compliance. Konfir is UK Government DIATF certified, ICO registered, and part of Experian.",
+      "All plans include AI-powered document verification with fraud detection — ID, payslips, and proof of address are checked using Claude vision. Landlord Pro and above include Konfir income verification, which verifies employment and income directly from HMRC, payroll systems, and bank records — eliminating payslip photos entirely. Tenants consent via a 30-second SMS link with no documents to upload. Konfir is UK Government DIATF certified, ICO registered, and part of Experian. All plans also include Home Office document and share code checks for Right to Rent compliance.",
   },
   {
     id: "right-to-rent-legally-valid",
