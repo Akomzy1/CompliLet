@@ -1,21 +1,28 @@
+/// <reference lib="deno.ns" />
 /**
  * CompliLet — Move-In Pack Agent
  *
  * Runs exactly once when the landlord approves a tenant (session advances to
  * "move_in_pack"). Not conversational — it compiles all screening data,
  * generates a PDF move-in pack, distributes it to both parties, creates the
- * tenancy record, seeds compliance deadlines, then transitions the session to
- * "active_tenancy".
+ * tenancy record, seeds compliance deadlines, then offers to generate a
+ * tenancy agreement for e-signature via SignWell.
  *
  * Flow:
- *   1. Load session + landlord + references + RTR check data.
- *   2. Calculate tenancy start date, deposit amount (5 weeks).
- *   3. Generate multi-page PDF via pdf.ts.
- *   4. Upload PDF to Supabase Storage.
- *   5. Send PDF to landlord and tenant via WhatsApp (signed URL).
- *   6. INSERT into tenancies table.
- *   7. INSERT compliance_deadlines (gas safety, EICR, EPC, deposit protection).
- *   8. Call onHandoff("active_tenancy") → coordinator advances the session.
+ *   1.  Load session + landlord + references + RTR check data.
+ *   2.  Calculate tenancy start date, deposit amount (5 weeks).
+ *   3.  Generate multi-page move-in pack PDF via pdf.ts.
+ *   4.  Upload PDF to Supabase Storage.
+ *   5.  Send PDF to landlord and tenant via WhatsApp (signed URL).
+ *   6.  INSERT into tenancies table.
+ *   7.  INSERT compliance_deadlines (gas, EICR, EPC, deposit protection).
+ *   8.  Ask landlord if they want a tenancy agreement generated.
+ *   9.  Collect landlord email + tenant email + special terms.
+ *   10. Generate tenancy agreement PDF (solicitor-grade, RRA 2025 compliant).
+ *   11. Upload to SignWell → send landlord signing URL.
+ *   12. After landlord signs → webhook sends tenant URL (signwell-callback).
+ *   13. After both sign → webhook stores signed PDF + notifies both parties.
+ *   14. Call onHandoff("active_tenancy") → coordinator advances the session.
  *
  * Called by: coordinator.ts (shared module — not a separate Edge Function)
  */
@@ -204,7 +211,40 @@ export async function runMoveInPack(input: MoveInPackInput): Promise<void> {
       ).catch(() => {}); // Non-fatal — don't let upsell block session advance
     }
 
-    // ── 11. Advance session ───────────────────────────────────────────────
+    // ── 11. Offer tenancy agreement generation ────────────────────────────
+    if (tenancyId) {
+      // Seed agreement state so the coordinator knows to enter the agreement flow
+      await supabase
+        .from("coordinator_state")
+        .upsert(
+          {
+            landlord_id: landlordId,
+            tenancy_agreement_state: {
+              step: "awaiting_confirmation",
+              tenancy_id: tenancyId,
+              landlord_name: data.landlordName,
+              tenant_name: data.tenantName,
+              property_address: data.propertyAddress,
+              monthly_rent_gbp: data.monthlyRentGbp,
+              deposit_gbp: depositGbp,
+              start_date: startDate,
+            },
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "landlord_id" },
+        );
+
+      await sendTextMessage(
+        landlordPhone,
+        `📋 *Would you like a Tenancy Agreement?*\n\n` +
+        `I can generate a solicitor-grade Assured Shorthold Tenancy Agreement (RRA 2025 compliant) ` +
+        `for *${data.propertyAddress}* and send it to both you and ${data.tenantName} for e-signature.\n\n` +
+        `Both parties sign digitally — no printing required.\n\n` +
+        `Reply *YES* to generate the agreement, or *NO* to skip.`,
+      );
+    }
+
+    // ── 12. Advance session ───────────────────────────────────────────────
     await onHandoff(SESSION_STATUS.ACTIVE_TENANCY, { tenancyId: tenancyId ?? null });
 
   } catch (err) {
@@ -297,9 +337,10 @@ async function loadScreeningData(
     .order("created_at", { ascending: false })
     .limit(10);
 
-  const lastGas  = complianceRecs?.find((r) => r.type === "gas_safety");
-  const lastEicr = complianceRecs?.find((r) => r.type === "eicr");
-  const lastEpc  = complianceRecs?.find((r) => r.type === "epc");
+  type ComplianceRec = { type: string; certificate_date: string | null; expiry_date: string | null; epc_rating: string | null };
+  const lastGas  = (complianceRecs as ComplianceRec[] | null)?.find((r) => r.type === "gas_safety");
+  const lastEicr = (complianceRecs as ComplianceRec[] | null)?.find((r) => r.type === "eicr");
+  const lastEpc  = (complianceRecs as ComplianceRec[] | null)?.find((r) => r.type === "epc");
 
   // Screening score (stored in agent_state by pre-qualifier).
   const score = ((agentState.pre_qualifying as Record<string, unknown>)?.score as number) ?? 7;
@@ -317,11 +358,11 @@ async function loadScreeningData(
     rtrClassification: rtrCheck?.classification as string | undefined,
     rtrFollowUpDate:   rtrCheck?.follow_up_date as string | undefined,
     rtrCertificateRef: rtrCheck?.certificate_ref as string | undefined,
-    references: (refs ?? []).map((r) => ({
+    references: (refs as Array<{ type: string; referee_name: string | null; outcome: string | null; summary: string | null }> ?? []).map((r) => ({
       type:        r.type as "previous_landlord" | "employer",
-      refereeName: (r.referee_name as string) ?? "Unknown",
-      outcome:     (r.outcome as string) ?? "neutral",
-      summary:     (r.summary as string) ?? "",
+      refereeName: r.referee_name ?? "Unknown",
+      outcome:     r.outcome ?? "neutral",
+      summary:     r.summary ?? "",
     })),
     lastGasSafetyDate: lastGas?.certificate_date as string | undefined,
     lastEicrDate:      lastEicr?.certificate_date as string | undefined,

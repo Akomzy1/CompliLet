@@ -33,6 +33,7 @@ import { supabase } from "../supabase.ts";
 import { sendTextMessage } from "../whatsapp.ts";
 import { COMPLIANCE_VALIDITY_DAYS } from "../constants.ts";
 import type { ParsedMessage, ComplianceType } from "../types.ts";
+import { presentContractorOptions } from "../contractor-flow.ts";
 
 // ─── Public Interface ───────────────────────────────────────────────────────
 
@@ -448,6 +449,74 @@ async function saveComplianceState(
       compliance_state: state,
       updated_at: new Date().toISOString(),
     });
+}
+
+// ─── Cron-facing reminder with 3-option contractor flow ─────────────────────
+
+/**
+ * Sends a compliance reminder for the given deadline using the 3-option
+ * contractor flow (presentContractorOptions). Called by the
+ * compliance-autopilot-cron at 30/14/7 day thresholds.
+ *
+ * The message includes:
+ *   1️⃣ Find me a [trade]  (or "Re-use [previous contractor]" if memory match)
+ *   2️⃣ I have my own [trade]
+ *   3️⃣ Already booked
+ */
+export async function sendComplianceReminderWithOptions(
+  deadlineId: string,
+): Promise<void> {
+  // Load the deadline + landlord + property + tenant context
+  const { data: deadline } = await supabase
+    .from("compliance_deadlines")
+    .select("id, landlord_id, tenancy_id, property_address, type, due_date")
+    .eq("id", deadlineId)
+    .maybeSingle();
+
+  if (!deadline) {
+    console.error(`[compliance-autopilot] Deadline ${deadlineId} not found`);
+    return;
+  }
+
+  const trade = contractorTradeForType(deadline.type as ComplianceType);
+  if (!trade) {
+    // Compliance types like deposit_protection that don't need a contractor
+    // fall through to the original reminder sender — caller handles those.
+    return;
+  }
+
+  const { data: landlord } = await supabase
+    .from("landlords")
+    .select("whatsapp_number")
+    .eq("id", deadline.landlord_id)
+    .maybeSingle();
+
+  const { data: tenancy } = await supabase
+    .from("tenancies")
+    .select("tenant_phone, tenant_name")
+    .eq("id", deadline.tenancy_id)
+    .maybeSingle();
+
+  const landlordPhone = landlord?.whatsapp_number as string | undefined;
+  if (!landlordPhone) {
+    console.error(`[compliance-autopilot] No landlord phone for deadline ${deadlineId}`);
+    return;
+  }
+
+  await presentContractorOptions({
+    landlordId:       deadline.landlord_id as string,
+    landlordPhone,
+    source:           "compliance",
+    trade,
+    job_type:         complianceTypeLabel(deadline.type as ComplianceType),
+    property_address: deadline.property_address as string,
+    due_date:         deadline.due_date as string,
+    deadline_id:      deadline.id as string,
+    compliance_type:  deadline.type as string,
+    tenancy_id:       deadline.tenancy_id as string | undefined,
+    tenant_phone:     tenancy?.tenant_phone as string | undefined,
+    tenant_name:      tenancy?.tenant_name as string | undefined,
+  });
 }
 
 // ─── Exported Helpers (used by cron) ─────────────────────────────────────────

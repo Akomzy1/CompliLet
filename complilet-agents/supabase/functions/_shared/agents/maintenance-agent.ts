@@ -52,6 +52,7 @@ import {
   EMERGENCY_MAINTENANCE_KEYWORDS,
 } from "../constants.ts";
 import type { ParsedMessage, MaintenanceCategory, MaintenanceUrgency } from "../types.ts";
+import { presentContractorOptions } from "../contractor-flow.ts";
 
 // ─── Public Interface ───────────────────────────────────────────────────────
 
@@ -436,16 +437,11 @@ async function escalateToLandlord(
   analysis: ClaudeAnalysis,
   selfFixFailed = false,
 ): Promise<void> {
-  const isEmergency = analysis.severity === "emergency";
-  const isHigh = analysis.severity === "high";
+  const isEmergency = (analysis.severity as string) === "emergency";
+  const isHigh = (analysis.severity as string) === "high";
 
-  // Find a relevant contractor if the issue requires one.
-  const contractor = analysis.requiresContractor && analysis.contractorType
-    ? await findContractor(analysis.contractorType, ctx.propertyAddress)
-    : null;
-
-  // Build landlord alert message.
-  const urgencyEmoji = isEmergency ? "EMERGENCY" : isHigh ? "Urgent" : "New";
+  // Build landlord alert message — context summary first.
+  const urgencyEmoji = isEmergency ? "🚨 EMERGENCY" : isHigh ? "⚠️ Urgent" : "📋 New";
   const selfFixNote = selfFixFailed
     ? "The tenant attempted a self-fix but it did not resolve the issue.\n\n"
     : "";
@@ -454,28 +450,16 @@ async function escalateToLandlord(
     `*${urgencyEmoji} Maintenance Report — ${ctx.propertyAddress}*\n\n` +
     `*Tenant:* ${ctx.tenantName}\n` +
     `*Issue:* ${analysis.title}\n` +
-    `*Severity:* ${analysis.severity.toUpperCase()}\n\n` +
+    `*Severity:* ${(analysis.severity as string).toUpperCase()}\n\n` +
     `*Summary:* ${analysis.summary}\n\n` +
     selfFixNote;
 
   if (isEmergency && analysis.safetyWarning) {
     landlordMsg += `SAFETY: ${analysis.safetyWarning}\n\n`;
-  }
-
-  if (contractor) {
-    landlordMsg +=
-      `*Recommended contractor:*\n` +
-      `${contractor.name} (${tradeLabel(analysis.contractorType!)})\n` +
-      `${starRating(contractor.rating)} (${(contractor.rating as number).toFixed(1)})\n` +
-      `Tel: ${contractor.phone}\n\n`;
-  }
-
-  if (isEmergency && analysis.safetyWarning) {
     landlordMsg += "Please respond to your tenant immediately.";
-  } else {
-    landlordMsg += `Reply to let me know when you've arranged a contractor, or type *MAINTENANCE* for all open tickets.`;
   }
 
+  // Send the context summary first so the landlord knows what's happening.
   await sendTextMessage(ctx.landlordPhone, landlordMsg);
 
   // Confirm to tenant.
@@ -484,7 +468,6 @@ async function escalateToLandlord(
       (analysis.safetyWarning ? `\n\nSafety note: ${analysis.safetyWarning}` : "")
     : `I've notified your landlord about the *${analysis.title}* at ${ctx.propertyAddress}. ` +
       `They'll be in touch to arrange a repair. I'll follow up with you in 48 hours.`;
-
   await sendTextMessage(tenantPhone, tenantMsg);
 
   // Update ticket to open.
@@ -493,11 +476,29 @@ async function escalateToLandlord(
     .update({
       status: "open",
       opened_at: now(),
-      contractor_id: contractor?.id ?? null,
-      contractor_name: contractor?.name ?? null,
       updated_at: now(),
     })
     .eq("id", ticket.id);
+
+  // Now offer the 3-option contractor flow if a tradesperson is needed.
+  if (analysis.requiresContractor && analysis.contractorType) {
+    const urgency: "emergency" | "urgent" | "routine" =
+      isEmergency ? "emergency" : isHigh ? "urgent" : "routine";
+
+    await presentContractorOptions({
+      landlordId:       ctx.landlordId,
+      landlordPhone:    ctx.landlordPhone,
+      source:           "maintenance",
+      trade:            analysis.contractorType,
+      job_type:         analysis.title,
+      property_address: ctx.propertyAddress,
+      ticket_id:        ticket.id,
+      tenancy_id:       ctx.tenancyId,
+      tenant_phone:     tenantPhone,
+      tenant_name:      ctx.tenantName ?? undefined,
+      urgency,
+    });
+  }
 }
 
 // ─── Landlord update ─────────────────────────────────────────────────────────
@@ -880,39 +881,6 @@ async function openEmergencyTicket(
   });
 }
 
-// ─── Contractor lookup ────────────────────────────────────────────────────────
-
-interface ContractorRow {
-  id: string;
-  name: string;
-  phone: string;
-  rating: number;
-}
-
-async function findContractor(
-  trade: string,
-  propertyAddress: string,
-): Promise<ContractorRow | null> {
-  // Derive postcode area from address for local matching.
-  const postcodeMatch = propertyAddress.match(/([A-Z]{1,2}\d{1,2}[A-Z]?)\s*\d[A-Z]{2}/i);
-  const postcodeArea = postcodeMatch ? postcodeMatch[1] : null;
-
-  let query = supabase
-    .from("contractors")
-    .select("id, name, phone, rating")
-    .eq("trade", trade)
-    .eq("is_verified", true)
-    .order("rating", { ascending: false })
-    .limit(1);
-
-  if (postcodeArea) {
-    query = query.eq("postcode_area", postcodeArea);
-  }
-
-  const { data } = await query.maybeSingle();
-  return data as ContractorRow | null;
-}
-
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
 function firstNameOf(name: string): string {
@@ -925,19 +893,4 @@ function truncate(text: string, max: number): string {
 
 function now(): string {
   return new Date().toISOString();
-}
-
-function tradeLabel(trade: string): string {
-  const labels: Record<string, string> = {
-    gas_safe:    "Gas Safe engineer",
-    electrician: "Electrician",
-    plumber:     "Plumber",
-    general:     "General contractor",
-  };
-  return labels[trade] ?? trade;
-}
-
-function starRating(rating: number): string {
-  const full = Math.round(rating);
-  return "★".repeat(full) + "☆".repeat(5 - full);
 }

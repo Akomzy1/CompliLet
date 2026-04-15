@@ -213,9 +213,8 @@ export type SessionStatus =
   | "chasing_refs"     // AI contacts previous landlord + employer for references
   | "decision"         // Landlord reviews scored report and decides
   | "move_in_pack"     // AI generates and sends tenancy agreement + move-in documents
-  | "active_tenancy"   // Post-move-in: rent, compliance, maintenance, inspections
-  | "renewal"          // Approaching lease end — renewal workflow active
-  | "abandoned"        // Tenant did not complete screening
+  | "active_tenancy"   // Post-move-in: rent, compliance, maintenance, inspections (periodic — no renewals under RRA 2025)
+  | "abandoned"        // Tenant vacated or did not complete screening
   | "rejected";        // Landlord declined or tenant failed threshold
 
 /**
@@ -223,13 +222,14 @@ export type SessionStatus =
  * Each agent type has its own set of system prompts and tool authorisations.
  */
 export type AgentType =
-  | "coordinator"      // Routes messages to the correct sub-agent
-  | "screener"         // Runs pre-qualifying → collecting_docs → right_to_rent → chasing_refs
-  | "compliance"       // Tracks and alerts on certificate deadlines
-  | "maintenance"      // Triages maintenance reports and dispatches contractors
-  | "inspection"       // Manages quarterly photo-based inspections
-  | "rent_collection"  // Rent reminders and arrears chasing
-  | "renewal";         // Lease renewal negotiations
+  | "coordinator"        // Routes messages to the correct sub-agent
+  | "screener"           // Runs pre-qualifying → collecting_docs → right_to_rent → chasing_refs
+  | "compliance"         // Tracks and alerts on certificate deadlines
+  | "maintenance"        // Triages maintenance reports and dispatches contractors
+  | "inspection"         // Manages quarterly photo-based inspections
+  | "rent_collection"    // Rent reminders and arrears chasing
+  | "tenancy_check_in"   // 12-month check-in and tenant exit (2-month notice) under RRA 2025
+  | "rent_review";       // Section 13 rent increase process under RRA 2025
 
 export type MessageRole = "system" | "user" | "assistant" | "tool";
 

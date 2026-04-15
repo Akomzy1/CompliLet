@@ -62,6 +62,7 @@ import {
 import {
   complianceTypeLabel,
   contractorTradeForType,
+  sendComplianceReminderWithOptions,
 } from "../_shared/agents/compliance-autopilot.ts";
 import type { ComplianceType } from "../_shared/types.ts";
 
@@ -221,6 +222,23 @@ async function processDeadline(
     return false;
   }
 
+  // ── 3-option contractor flow (30 / 14 / 7 day thresholds) ──────────────
+  // For deadlines that need a tradesperson (gas, EICR, EPC, legionella),
+  // present the landlord with the 3-option choice instead of the old
+  // "reply find engineer" text. Other thresholds (90, 1, overdue) and
+  // contractor-less types (deposit, how_to_rent_guide) still use the
+  // legacy text reminder.
+  const trade = contractorTradeForType(complianceType);
+  const useOptionsFlow =
+    trade !== null && (applicableThreshold === 30 || applicableThreshold === 14 || applicableThreshold === 7);
+
+  if (useOptionsFlow) {
+    await sendComplianceReminderWithOptions(row.id);
+    await markReminderSent(row.id, applicableThreshold);
+    return true;
+  }
+
+  // Fallback: legacy text reminder for 90-day, 1-day, and contractor-less types
   const address = await getPropertyAddress(row.tenancy_id);
   const message = buildReminderMessage(complianceType, address, dueDate, daysUntil, applicableThreshold);
 

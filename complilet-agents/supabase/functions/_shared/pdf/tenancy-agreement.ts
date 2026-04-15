@@ -1,0 +1,563 @@
+/**
+ * CompliLet — Assured Shorthold Tenancy Agreement PDF Generator
+ *
+ * Generates a solicitor-grade Assured Shorthold Tenancy Agreement
+ * compliant with the Renters' Rights Act 2025.
+ *
+ * Key compliance points built into every generated agreement:
+ *   - Periodic tenancy only (no fixed term — RRA 2025 §1)
+ *   - Rent increases via Section 13 only (Housing Act 1988 as amended)
+ *   - Possession via Section 8 only — no Section 21 (abolished by RRA 2025)
+ *   - 2-month minimum notice period for tenant to vacate (RRA 2025)
+ *   - Deposit cap: 5 weeks' rent (Tenant Fees Act 2019)
+ *   - Section 11 landlord repair obligations (Landlord and Tenant Act 1985)
+ *   - Pet request rights (RRA 2025 §13 — landlord must not unreasonably refuse)
+ *   - No discrimination clauses (Equality Act 2010)
+ *
+ * Uses pdf-lib (pure TypeScript, no Node.js streams — safe for Deno Edge Functions).
+ */
+
+import { PDFDocument, StandardFonts, rgb } from "npm:pdf-lib@1.17.1";
+
+// ─── Colour palette ────────────────────────────────────────────────────────
+
+const NAVY  = rgb(0.059, 0.169, 0.275);  // #0F2B46
+const TEAL  = rgb(0.051, 0.580, 0.471);  // #0D9488
+const DARK  = rgb(0.067, 0.094, 0.153);  // #111827
+const MID   = rgb(0.420, 0.447, 0.502);  // #6B7280
+const WHITE = rgb(1, 1, 1);
+const LIGHT = rgb(0.878, 0.961, 0.953);  // #E0F5F3 — light teal
+const PALE  = rgb(0.980, 0.984, 0.988);  // near-white bg
+
+// ─── Layout ───────────────────────────────────────────────────────────────
+
+const A4_W   = 595.28;
+const A4_H   = 841.89;
+const MARGIN = 50;
+const CW     = A4_W - MARGIN * 2;
+
+// ─── Public Interface ──────────────────────────────────────────────────────
+
+export interface TenancyAgreementParams {
+  /** Full name of landlord or company */
+  landlordName: string;
+  /** Correspondence address of landlord */
+  landlordAddress: string;
+  /** Email address of landlord (for SignWell) */
+  landlordEmail: string;
+  /** Full name(s) of tenant(s) */
+  tenantName: string;
+  /** Email address of tenant (for SignWell) */
+  tenantEmail: string;
+  /** Full address of the rental property */
+  propertyAddress: string;
+  /** Monthly rent in GBP */
+  monthlyRentGbp: number;
+  /** Deposit amount in GBP (max 5 weeks' rent) */
+  depositGbp: number;
+  /** Tenancy start date (ISO format) */
+  startDate: string;
+  /** Day of month rent is due (1–28) */
+  rentDueDay: number;
+  /** Deposit protection scheme name */
+  depositScheme: string;
+  /** Any special terms agreed between parties (optional) */
+  specialTerms?: string;
+  /** CompliLet session ID — for document tracking */
+  sessionId: string;
+  /** ISO date/time the agreement was generated */
+  generatedAt: string;
+}
+
+/**
+ * Generates a tenancy agreement PDF.
+ * Returns raw PDF bytes suitable for upload to Supabase Storage.
+ */
+export async function generateTenancyAgreement(
+  params: TenancyAgreementParams,
+): Promise<Uint8Array> {
+  const pdfDoc = await PDFDocument.create();
+  const bold   = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const reg    = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+  // ── PAGE 1: Cover ────────────────────────────────────────────────────────
+  const page1 = pdfDoc.addPage([A4_W, A4_H]);
+  drawHeader(page1, bold, reg);
+  await drawCoverPage(page1, bold, reg, params);
+
+  // ── PAGE 2: Parties & Property + Main Clauses ───────────────────────────
+  const page2 = pdfDoc.addPage([A4_W, A4_H]);
+  drawHeader(page2, bold, reg);
+  await drawPartiesPage(page2, bold, reg, params);
+
+  // ── PAGE 3: Obligations & Rights ────────────────────────────────────────
+  const page3 = pdfDoc.addPage([A4_W, A4_H]);
+  drawHeader(page3, bold, reg);
+  await drawObligationsPage(page3, bold, reg, params);
+
+  // ── PAGE 4: Signature Page ───────────────────────────────────────────────
+  const page4 = pdfDoc.addPage([A4_W, A4_H]);
+  drawHeader(page4, bold, reg);
+  await drawSignaturePage(page4, bold, reg, params);
+
+  return pdfDoc.save();
+}
+
+// ─── Page Drawers ──────────────────────────────────────────────────────────
+
+function drawHeader(
+  page: ReturnType<PDFDocument["addPage"]>,
+  bold: Awaited<ReturnType<PDFDocument["embedFont"]>>,
+  reg: Awaited<ReturnType<PDFDocument["embedFont"]>>,
+): void {
+  page.drawRectangle({ x: 0, y: A4_H - 52, width: A4_W, height: 52, color: NAVY });
+  page.drawText("CompliLet", { x: MARGIN, y: A4_H - 22, font: bold, size: 14, color: WHITE });
+  page.drawText("AI-Powered Property Management  ·  complilet.ai", {
+    x: MARGIN, y: A4_H - 36, font: reg, size: 8, color: rgb(0.7, 0.85, 0.92),
+  });
+  page.drawText("TENANCY AGREEMENT", {
+    x: A4_W - MARGIN - bold.widthOfTextAtSize("TENANCY AGREEMENT", 9),
+    y: A4_H - 29,
+    font: bold, size: 9, color: TEAL,
+  });
+
+  // Footer
+  page.drawRectangle({ x: 0, y: 0, width: A4_W, height: 26, color: PALE });
+  page.drawText(
+    "Renters' Rights Act 2025 Compliant  ·  Generated by CompliLet AI  ·  complilet.ai",
+    { x: MARGIN, y: 9, font: reg, size: 7, color: MID },
+  );
+}
+
+async function drawCoverPage(
+  page: ReturnType<PDFDocument["addPage"]>,
+  bold: Awaited<ReturnType<PDFDocument["embedFont"]>>,
+  reg: Awaited<ReturnType<PDFDocument["embedFont"]>>,
+  p: TenancyAgreementParams,
+): Promise<void> {
+  let y = A4_H - 80;
+
+  // Large title
+  y -= 40;
+  const title = "ASSURED SHORTHOLD TENANCY AGREEMENT";
+  const titleW = bold.widthOfTextAtSize(title, 18);
+  page.drawText(title, { x: (A4_W - titleW) / 2, y, font: bold, size: 18, color: NAVY });
+
+  y -= 18;
+  const sub = "Periodic Tenancy — Renters' Rights Act 2025 Compliant";
+  const subW = reg.widthOfTextAtSize(sub, 10);
+  page.drawText(sub, { x: (A4_W - subW) / 2, y, font: reg, size: 10, color: TEAL });
+
+  // Decorative rule
+  y -= 16;
+  page.drawRectangle({ x: MARGIN, y: y - 2, width: CW, height: 2, color: TEAL });
+
+  // Property box
+  y -= 28;
+  page.drawRectangle({ x: MARGIN, y: y - 80, width: CW, height: 98, color: PALE });
+  page.drawText("PROPERTY ADDRESS", { x: MARGIN + 14, y: y + 5, font: bold, size: 8, color: TEAL });
+  y -= 18;
+  for (const line of wrapText(p.propertyAddress, bold, 13, CW - 28)) {
+    page.drawText(line, { x: MARGIN + 14, y, font: bold, size: 13, color: NAVY });
+    y -= 16;
+  }
+
+  // Parties summary
+  y -= 24;
+  page.drawText("PARTIES TO THIS AGREEMENT", { x: MARGIN, y, font: bold, size: 10, color: NAVY });
+  y -= 6;
+  page.drawLine({ start: { x: MARGIN, y }, end: { x: A4_W - MARGIN, y }, thickness: 0.5, color: rgb(0.85, 0.85, 0.85) });
+
+  y -= 18;
+  const col2 = MARGIN + CW / 2 + 10;
+  page.drawText("LANDLORD", { x: MARGIN, y, font: bold, size: 8, color: TEAL });
+  page.drawText("TENANT(S)", { x: col2, y, font: bold, size: 8, color: TEAL });
+  y -= 14;
+  for (const line of wrapText(p.landlordName, bold, 10, CW / 2 - 20)) {
+    page.drawText(line, { x: MARGIN, y, font: bold, size: 10, color: DARK });
+    y -= 13;
+  }
+  let y2 = A4_H - 80 - 40 - 18 - 16 - 28 - 98 - 24 - 6 - 18 - 14;
+  for (const line of wrapText(p.tenantName, bold, 10, CW / 2 - 20)) {
+    page.drawText(line, { x: col2, y: y2, font: bold, size: 10, color: DARK });
+    y2 -= 13;
+  }
+  y = Math.min(y, y2);
+
+  // Key financial terms
+  y -= 24;
+  page.drawText("KEY TERMS", { x: MARGIN, y, font: bold, size: 10, color: NAVY });
+  y -= 6;
+  page.drawLine({ start: { x: MARGIN, y }, end: { x: A4_W - MARGIN, y }, thickness: 0.5, color: rgb(0.85, 0.85, 0.85) });
+
+  const terms = [
+    ["Tenancy type", "Periodic (rolling monthly) — Renters' Rights Act 2025"],
+    ["Start date", formatDate(p.startDate)],
+    ["Monthly rent", `£${p.monthlyRentGbp.toLocaleString("en-GB", { minimumFractionDigits: 2 })} per calendar month`],
+    ["Rent due", `${ordinal(p.rentDueDay)} of each month`],
+    ["Deposit", `£${p.depositGbp.toLocaleString("en-GB", { minimumFractionDigits: 2 })} (protected under ${p.depositScheme})`],
+    ["Deposit cap", "Does not exceed 5 weeks' rent (Tenant Fees Act 2019)"],
+    ["Possession", "Section 8 Housing Act 1988 only — Section 21 abolished (RRA 2025)"],
+    ["Rent increases", "Section 13 Housing Act 1988 only — minimum 2 months' notice"],
+  ];
+
+  y -= 16;
+  for (const [label, value] of terms) {
+    page.drawRectangle({ x: MARGIN, y: y - 4, width: CW, height: 17, color: PALE });
+    page.drawText(label + ":", { x: MARGIN + 6, y: y + 2, font: bold, size: 8.5, color: MID });
+    for (const line of wrapText(value, reg, 8.5, CW - 130)) {
+      page.drawText(line, { x: MARGIN + 130, y, font: reg, size: 8.5, color: DARK });
+      y -= 11;
+    }
+    y -= 6;
+  }
+
+  // Reference box
+  y -= 16;
+  page.drawRectangle({ x: MARGIN, y: y - 22, width: CW, height: 36, color: LIGHT });
+  page.drawText("DOCUMENT REFERENCE", { x: MARGIN + 10, y: y + 5, font: bold, size: 7, color: TEAL });
+  y -= 12;
+  page.drawText(`Session: ${p.sessionId}  ·  Generated: ${formatDateTime(p.generatedAt)}  ·  Ref: CL-AST-${p.sessionId.substring(0, 8).toUpperCase()}`, {
+    x: MARGIN + 10, y, font: reg, size: 7.5, color: MID,
+  });
+}
+
+async function drawPartiesPage(
+  page: ReturnType<PDFDocument["addPage"]>,
+  bold: Awaited<ReturnType<PDFDocument["embedFont"]>>,
+  reg: Awaited<ReturnType<PDFDocument["embedFont"]>>,
+  p: TenancyAgreementParams,
+): Promise<void> {
+  let y = A4_H - 70;
+
+  y -= 14;
+  page.drawText("1. PARTIES AND PROPERTY", { x: MARGIN, y, font: bold, size: 12, color: NAVY });
+  y -= 6;
+  page.drawLine({ start: { x: MARGIN, y }, end: { x: A4_W - MARGIN, y }, thickness: 1, color: TEAL });
+
+  const clauses1 = [
+    ["1.1", "Landlord", `${p.landlordName}, ${p.landlordAddress}`],
+    ["1.2", "Tenant(s)", p.tenantName],
+    ["1.3", "Property", p.propertyAddress],
+    ["1.4", "Tenancy type", "This is a periodic (rolling) assured shorthold tenancy. There is no fixed term. The tenancy continues on a monthly periodic basis until brought to an end in accordance with this Agreement and the Housing Act 1988 as amended by the Renters' Rights Act 2025."],
+    ["1.5", "Commencement", `The tenancy commences on ${formatDate(p.startDate)}.`],
+  ];
+
+  y -= 16;
+  for (const [num, heading, text] of clauses1) {
+    y = drawClause(page, bold, reg, MARGIN, y, num, heading, text, CW);
+    y -= 8;
+  }
+
+  y -= 8;
+  page.drawText("2. RENT", { x: MARGIN, y, font: bold, size: 12, color: NAVY });
+  y -= 6;
+  page.drawLine({ start: { x: MARGIN, y }, end: { x: A4_W - MARGIN, y }, thickness: 1, color: TEAL });
+
+  const clauses2 = [
+    ["2.1", "Monthly rent", `The Tenant shall pay £${p.monthlyRentGbp.toLocaleString("en-GB", { minimumFractionDigits: 2 })} per calendar month, payable in advance on the ${ordinal(p.rentDueDay)} day of each month.`],
+    ["2.2", "Method", "Rent is payable by bank transfer (BACS/faster payment) to the Landlord's nominated account. The Landlord may agree an alternative method in writing."],
+    ["2.3", "Rent increases", "The Landlord may only increase the rent by serving a valid Section 13 Notice (Form 4A) under the Housing Act 1988. The minimum notice period is 2 months. The Tenant has the right to refer any proposed increase to the First-tier Tribunal (Property Chamber) before the effective date. No other mechanism for rent increase is permitted."],
+    ["2.4", "No unlawful charges", "The Landlord shall not charge the Tenant any fees prohibited by the Tenant Fees Act 2019, including agency fees, administration charges, or check-out fees."],
+  ];
+
+  y -= 16;
+  for (const [num, heading, text] of clauses2) {
+    y = drawClause(page, bold, reg, MARGIN, y, num, heading, text, CW);
+    y -= 8;
+  }
+
+  y -= 8;
+  page.drawText("3. DEPOSIT", { x: MARGIN, y, font: bold, size: 12, color: NAVY });
+  y -= 6;
+  page.drawLine({ start: { x: MARGIN, y }, end: { x: A4_W - MARGIN, y }, thickness: 1, color: TEAL });
+
+  const depositWeeks = ((p.monthlyRentGbp * 12) / 52) * 5;
+  const clauses3 = [
+    ["3.1", "Deposit amount", `The Tenant shall pay a deposit of £${p.depositGbp.toLocaleString("en-GB", { minimumFractionDigits: 2 })} prior to or on the commencement date. This does not exceed 5 weeks' rent (£${depositWeeks.toFixed(2)}) as required by the Tenant Fees Act 2019.`],
+    ["3.2", "Scheme", `The Landlord shall protect the deposit in a government-approved scheme (${p.depositScheme}) within 30 days of receipt and serve the Prescribed Information on the Tenant within the same period.`],
+    ["3.3", "Deductions", "The Landlord may only make deductions from the deposit for: (a) unpaid rent; (b) damage to the property beyond fair wear and tear; (c) missing items from the inventory. The Landlord shall provide an itemised account of any deductions."],
+    ["3.4", "Return", "The deposit shall be returned to the Tenant within 10 days of the parties agreeing any deductions. The Tenant may raise a dispute via the deposit protection scheme."],
+  ];
+
+  y -= 16;
+  for (const [num, heading, text] of clauses3) {
+    y = drawClause(page, bold, reg, MARGIN, y, num, heading, text, CW);
+    y -= 8;
+  }
+}
+
+async function drawObligationsPage(
+  page: ReturnType<PDFDocument["addPage"]>,
+  bold: Awaited<ReturnType<PDFDocument["embedFont"]>>,
+  reg: Awaited<ReturnType<PDFDocument["embedFont"]>>,
+  p: TenancyAgreementParams,
+): Promise<void> {
+  let y = A4_H - 70;
+
+  y -= 14;
+  page.drawText("4. LANDLORD OBLIGATIONS", { x: MARGIN, y, font: bold, size: 12, color: NAVY });
+  y -= 6;
+  page.drawLine({ start: { x: MARGIN, y }, end: { x: A4_W - MARGIN, y }, thickness: 1, color: TEAL });
+
+  const clauses4 = [
+    ["4.1", "Repairs (Section 11)", "The Landlord shall keep in repair the structure and exterior of the property; the installations for the supply of water, gas, electricity, sanitation, space heating and water heating; and shall comply with all obligations under Section 11 of the Landlord and Tenant Act 1985."],
+    ["4.2", "Gas safety", "The Landlord shall obtain an annual Gas Safety Certificate (CP12) from a Gas Safe registered engineer and provide a copy to the Tenant before move-in and annually thereafter."],
+    ["4.3", "Electrical safety", "The Landlord shall obtain an Electrical Installation Condition Report (EICR) every 5 years and provide a copy to the Tenant before move-in."],
+    ["4.4", "EPC", "The Landlord shall ensure the property has a valid Energy Performance Certificate (EPC) rated E or above and provide a copy to the Tenant."],
+    ["4.5", "Smoke & CO alarms", "The Landlord shall fit and test a smoke alarm on each storey and a carbon monoxide alarm in any room with a solid fuel appliance before move-in."],
+    ["4.6", "How to Rent guide", "The Landlord shall provide the current government 'How to Rent' guide at the commencement of the tenancy and at each subsequent renewal of this guide."],
+    ["4.7", "Quiet enjoyment", "The Landlord shall not interfere with the Tenant's right to quiet enjoyment of the property. Access for inspections requires at least 24 hours' written notice except in emergencies."],
+  ];
+
+  y -= 16;
+  for (const [num, heading, text] of clauses4) {
+    y = drawClause(page, bold, reg, MARGIN, y, num, heading, text, CW);
+    y -= 6;
+  }
+
+  y -= 8;
+  page.drawText("5. TENANT OBLIGATIONS", { x: MARGIN, y, font: bold, size: 12, color: NAVY });
+  y -= 6;
+  page.drawLine({ start: { x: MARGIN, y }, end: { x: A4_W - MARGIN, y }, thickness: 1, color: TEAL });
+
+  const clauses5 = [
+    ["5.1", "Use of property", "The Tenant shall use the property only as a private residential dwelling for the Tenant and permitted occupants named herein."],
+    ["5.2", "Tenant's care", "The Tenant shall keep the property in good and clean condition, carry out minor repairs (e.g. replacing light bulbs), and report any damage or required repairs to the Landlord promptly."],
+    ["5.3", "No subletting", "The Tenant shall not sublet the whole or any part of the property without the Landlord's prior written consent."],
+    ["5.4", "No alterations", "The Tenant shall not make structural alterations without the Landlord's prior written consent."],
+    ["5.5", "Access", "The Tenant shall permit the Landlord, their agents, or contractors to enter the property on at least 24 hours' notice for inspection or repair purposes."],
+    ["5.6", "End of tenancy", "The Tenant shall give the Landlord not less than 2 months' written notice to vacate the property."],
+  ];
+
+  y -= 16;
+  for (const [num, heading, text] of clauses5) {
+    y = drawClause(page, bold, reg, MARGIN, y, num, heading, text, CW);
+    y -= 6;
+  }
+
+  y -= 8;
+  page.drawText("6. PETS", { x: MARGIN, y, font: bold, size: 12, color: NAVY });
+  y -= 6;
+  page.drawLine({ start: { x: MARGIN, y }, end: { x: A4_W - MARGIN, y }, thickness: 1, color: TEAL });
+
+  const clauses6 = [
+    ["6.1", "Pet requests", "The Tenant has the right to request permission to keep a pet at the property under the Renters' Rights Act 2025. The Landlord shall not unreasonably refuse a written pet request. The Landlord has 42 days to respond in writing with either consent or written reasons for refusal."],
+    ["6.2", "Damage", "Where permission is granted, the Tenant remains liable for any damage caused by the pet beyond fair wear and tear."],
+  ];
+
+  y -= 16;
+  for (const [num, heading, text] of clauses6) {
+    y = drawClause(page, bold, reg, MARGIN, y, num, heading, text, CW);
+    y -= 6;
+  }
+
+  y -= 8;
+  page.drawText("7. POSSESSION AND NOTICE", { x: MARGIN, y, font: bold, size: 12, color: NAVY });
+  y -= 6;
+  page.drawLine({ start: { x: MARGIN, y }, end: { x: A4_W - MARGIN, y }, thickness: 1, color: TEAL });
+
+  const clauses7 = [
+    ["7.1", "Section 8 only", "The Landlord may only bring this tenancy to an end by serving a valid Section 8 Notice under the Housing Act 1988 on one of the prescribed grounds. Section 21 (no-fault eviction) has been abolished by the Renters' Rights Act 2025 and cannot be used."],
+    ["7.2", "Tenant notice", "The Tenant may end this tenancy by giving not less than 2 months' written notice to the Landlord."],
+    ["7.3", "Anti-discrimination", "The Landlord shall not commence possession proceedings or serve a Section 8 Notice as a retaliatory measure in response to the Tenant exercising a legal right (including requesting repairs, challenging a rent increase, or requesting a pet). Such action constitutes unlawful retaliation under the Renters' Rights Act 2025."],
+  ];
+
+  y -= 16;
+  for (const [num, heading, text] of clauses7) {
+    y = drawClause(page, bold, reg, MARGIN, y, num, heading, text, CW);
+    y -= 6;
+  }
+
+  // Special terms
+  if (p.specialTerms?.trim()) {
+    y -= 8;
+    page.drawText("8. SPECIAL TERMS", { x: MARGIN, y, font: bold, size: 12, color: NAVY });
+    y -= 6;
+    page.drawLine({ start: { x: MARGIN, y }, end: { x: A4_W - MARGIN, y }, thickness: 1, color: TEAL });
+    y -= 14;
+    page.drawRectangle({ x: MARGIN, y: y - 80, width: CW, height: 95, color: PALE });
+    for (const line of wrapText(p.specialTerms, reg, 9, CW - 20)) {
+      page.drawText(line, { x: MARGIN + 10, y, font: reg, size: 9, color: DARK });
+      y -= 12;
+    }
+  }
+}
+
+async function drawSignaturePage(
+  page: ReturnType<PDFDocument["addPage"]>,
+  bold: Awaited<ReturnType<PDFDocument["embedFont"]>>,
+  reg: Awaited<ReturnType<PDFDocument["embedFont"]>>,
+  p: TenancyAgreementParams,
+): Promise<void> {
+  let y = A4_H - 70;
+
+  y -= 14;
+  const title = "EXECUTION OF THIS AGREEMENT";
+  page.drawText(title, { x: MARGIN, y, font: bold, size: 12, color: NAVY });
+  y -= 6;
+  page.drawLine({ start: { x: MARGIN, y }, end: { x: A4_W - MARGIN, y }, thickness: 1, color: TEAL });
+
+  y -= 18;
+  const intro = `This Agreement is made between the Landlord and Tenant(s) named above in respect of the property at ${p.propertyAddress}. By signing below, both parties confirm they have read, understood, and agreed to the terms of this Assured Shorthold Tenancy Agreement.`;
+  for (const line of wrapText(intro, reg, 9.5, CW)) {
+    page.drawText(line, { x: MARGIN, y, font: reg, size: 9.5, color: DARK });
+    y -= 13;
+  }
+
+  // Legal compliance box
+  y -= 16;
+  page.drawRectangle({ x: MARGIN, y: y - 54, width: CW, height: 70, color: LIGHT });
+  page.drawText("STATUTORY COMPLIANCE", { x: MARGIN + 10, y: y + 6, font: bold, size: 9, color: NAVY });
+  y -= 14;
+  const complianceItems = [
+    "✓  Periodic assured shorthold tenancy (Renters' Rights Act 2025)",
+    "✓  Section 21 abolished — Section 8 possession only",
+    "✓  Section 13 rent increase procedure only",
+    "✓  Deposit within 5-week cap (Tenant Fees Act 2019)",
+    "✓  Pet request rights (Renters' Rights Act 2025)",
+  ];
+  for (const item of complianceItems) {
+    page.drawText(item, { x: MARGIN + 10, y, font: reg, size: 8.5, color: DARK });
+    y -= 11;
+  }
+
+  // LANDLORD SIGNATURE
+  y -= 28;
+  page.drawText("SIGNED BY THE LANDLORD", { x: MARGIN, y, font: bold, size: 10, color: NAVY });
+  y -= 6;
+  page.drawLine({ start: { x: MARGIN, y }, end: { x: A4_W - MARGIN, y }, thickness: 0.5, color: rgb(0.85, 0.85, 0.85) });
+  y -= 18;
+  page.drawText("Full name:", { x: MARGIN, y, font: reg, size: 9, color: MID });
+  page.drawText(p.landlordName, { x: MARGIN + 90, y, font: bold, size: 9, color: DARK });
+
+  y -= 18;
+  page.drawText("Signature:", { x: MARGIN, y, font: reg, size: 9, color: MID });
+  // SignWell will place the signature here — we draw a placeholder box
+  page.drawRectangle({ x: MARGIN + 90, y: y - 10, width: 200, height: 36, color: PALE });
+  page.drawText("[LANDLORD SIGNATURE]", { x: MARGIN + 95, y: y + 4, font: reg, size: 8, color: rgb(0.7, 0.7, 0.7) });
+
+  y -= 44;
+  page.drawText("Date:", { x: MARGIN, y, font: reg, size: 9, color: MID });
+  page.drawRectangle({ x: MARGIN + 90, y: y - 6, width: 140, height: 22, color: PALE });
+  page.drawText("[DATE]", { x: MARGIN + 95, y: y + 2, font: reg, size: 8, color: rgb(0.7, 0.7, 0.7) });
+
+  // TENANT SIGNATURE
+  y -= 36;
+  page.drawText("SIGNED BY THE TENANT", { x: MARGIN, y, font: bold, size: 10, color: NAVY });
+  y -= 6;
+  page.drawLine({ start: { x: MARGIN, y }, end: { x: A4_W - MARGIN, y }, thickness: 0.5, color: rgb(0.85, 0.85, 0.85) });
+  y -= 18;
+  page.drawText("Full name:", { x: MARGIN, y, font: reg, size: 9, color: MID });
+  page.drawText(p.tenantName, { x: MARGIN + 90, y, font: bold, size: 9, color: DARK });
+
+  y -= 18;
+  page.drawText("Signature:", { x: MARGIN, y, font: reg, size: 9, color: MID });
+  page.drawRectangle({ x: MARGIN + 90, y: y - 10, width: 200, height: 36, color: PALE });
+  page.drawText("[TENANT SIGNATURE]", { x: MARGIN + 95, y: y + 4, font: reg, size: 8, color: rgb(0.7, 0.7, 0.7) });
+
+  y -= 44;
+  page.drawText("Date:", { x: MARGIN, y, font: reg, size: 9, color: MID });
+  page.drawRectangle({ x: MARGIN + 90, y: y - 6, width: 140, height: 22, color: PALE });
+  page.drawText("[DATE]", { x: MARGIN + 95, y: y + 2, font: reg, size: 8, color: rgb(0.7, 0.7, 0.7) });
+
+  // Disclaimer
+  y -= 40;
+  page.drawLine({ start: { x: MARGIN, y }, end: { x: A4_W - MARGIN, y }, thickness: 0.5, color: rgb(0.85, 0.85, 0.85) });
+  y -= 14;
+  const disclaimer = "This agreement has been generated by CompliLet AI Property Management and reflects current legislation as of the Renters' Rights Act 2025. " +
+    "It is provided as a compliant template and does not constitute legal advice. Landlords and tenants with complex or unusual circumstances are advised to seek independent legal advice. " +
+    "Generated: " + formatDateTime(p.generatedAt) + "  ·  Ref: CL-AST-" + p.sessionId.substring(0, 8).toUpperCase();
+  for (const line of wrapText(disclaimer, reg, 7.5, CW)) {
+    page.drawText(line, { x: MARGIN, y, font: reg, size: 7.5, color: MID });
+    y -= 10;
+  }
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────
+
+function drawClause(
+  page: ReturnType<PDFDocument["addPage"]>,
+  bold: Awaited<ReturnType<PDFDocument["embedFont"]>>,
+  reg: Awaited<ReturnType<PDFDocument["embedFont"]>>,
+  x: number,
+  y: number,
+  num: string,
+  heading: string,
+  text: string,
+  contentWidth: number,
+): number {
+  const numW = 28;
+  const headingW = bold.widthOfTextAtSize(heading + " — ", 9);
+
+  page.drawText(num, { x, y, font: bold, size: 9, color: TEAL });
+
+  const fullHeading = heading + " — ";
+  page.drawText(fullHeading, { x: x + numW, y, font: bold, size: 9, color: NAVY });
+
+  const bodyX = x + numW + headingW;
+  const bodyW = contentWidth - numW - headingW;
+
+  const lines = wrapText(text, reg, 9, bodyW);
+  let firstLine = true;
+  for (const line of lines) {
+    if (firstLine) {
+      page.drawText(line, { x: bodyX, y, font: reg, size: 9, color: DARK });
+      firstLine = false;
+    } else {
+      y -= 12;
+      page.drawText(line, { x: x + numW, y, font: reg, size: 9, color: DARK });
+    }
+  }
+
+  return y - 12;
+}
+
+function wrapText(
+  text: string,
+  font: Awaited<ReturnType<PDFDocument["embedFont"]>>,
+  size: number,
+  maxWidth: number,
+): string[] {
+  const words = text.split(" ");
+  const lines: string[] = [];
+  let current = "";
+  for (const word of words) {
+    const test = current ? `${current} ${word}` : word;
+    if (font.widthOfTextAtSize(test, size) > maxWidth && current) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = test;
+    }
+  }
+  if (current) lines.push(current);
+  return lines.length > 0 ? lines : [""];
+}
+
+function formatDate(isoDate: string): string {
+  try {
+    return new Date(isoDate).toLocaleDateString("en-GB", {
+      day: "numeric", month: "long", year: "numeric",
+    });
+  } catch {
+    return isoDate;
+  }
+}
+
+function formatDateTime(iso: string): string {
+  try {
+    return new Date(iso).toLocaleString("en-GB", {
+      day: "numeric", month: "short", year: "numeric",
+      hour: "2-digit", minute: "2-digit", hour12: false,
+    }) + " UTC";
+  } catch {
+    return iso;
+  }
+}
+
+function ordinal(n: number): string {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}

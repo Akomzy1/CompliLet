@@ -57,7 +57,8 @@ export const AGENT_TYPE = {
   MAINTENANCE: "maintenance",
   INSPECTION: "inspection",
   RENT_COLLECTION: "rent_collection",
-  RENEWAL: "renewal",
+  TENANCY_CHECK_IN: "tenancy_check_in",
+  RENT_REVIEW: "rent_review",
 } as const satisfies Record<string, AgentType>;
 
 // ─── Session Status ────────────────────────────────────────────────────────────
@@ -74,7 +75,6 @@ export const SESSION_STATUS = {
   DECISION: "decision",
   MOVE_IN_PACK: "move_in_pack",
   ACTIVE_TENANCY: "active_tenancy",
-  RENEWAL: "renewal",
   ABANDONED: "abandoned",
   REJECTED: "rejected",
 } as const satisfies Record<string, SessionStatus>;
@@ -85,9 +85,13 @@ export const SESSION_STATUS = {
  * "abandoned" and "rejected" are terminal states with no outbound transitions.
  *
  * Flow: pre_qualifying → collecting_docs → right_to_rent → chasing_refs
- *       → decision → move_in_pack → active_tenancy → renewal (→ active_tenancy)
+ *       → decision → move_in_pack → active_tenancy
  *
- * Any state can transition to "abandoned" (tenant stops responding)
+ * Under the Renters' Rights Act 2025, all tenancies are periodic and continue
+ * indefinitely as active_tenancy. There is no "renewal" status.
+ * When a tenant vacates (2-month notice), the session transitions to "abandoned".
+ *
+ * Any state can transition to "abandoned" (tenant stops responding or vacates)
  * or "rejected" (landlord declines / hard fail).
  */
 export const SESSION_STATUS_TRANSITIONS: Record<SessionStatus, SessionStatus[]> = {
@@ -97,8 +101,7 @@ export const SESSION_STATUS_TRANSITIONS: Record<SessionStatus, SessionStatus[]> 
   chasing_refs:    ["decision", "abandoned", "rejected"],
   decision:        ["move_in_pack", "rejected"],
   move_in_pack:    ["active_tenancy", "abandoned"],
-  active_tenancy:  ["renewal"],
-  renewal:         ["active_tenancy", "abandoned"],
+  active_tenancy:  ["abandoned"],
   abandoned:       [],
   rejected:        [],
 };
@@ -112,7 +115,6 @@ export const SESSION_STATUS_LABEL: Record<SessionStatus, string> = {
   decision:        "Awaiting Decision",
   move_in_pack:    "Move-In Pack",
   active_tenancy:  "Active Tenancy",
-  renewal:         "Renewal",
   abandoned:       "Abandoned",
   rejected:        "Rejected",
 };
@@ -511,19 +513,40 @@ export const GROUND_8_ARREARS_MONTHS = 2 as const;
 
 // ─── Inspection Schedule ───────────────────────────────────────────────────────
 
-// ─── Renewal ────────────────────────────────────────────────────────────────
-
-/** Days before tenancy end_date when the 60-day renewal notice is sent to landlord */
-export const RENEWAL_NOTICE_DAYS = 60 as const;
-
-/** Default renewal period in months when no custom period is specified */
-export const RENEWAL_DEFAULT_PERIOD_MONTHS = 12 as const;
+// ─── Tenancy Check-In ────────────────────────────────────────────────────────
 
 /**
- * Days before tenancy end_date when the checkout inspection photo request
- * is sent to the tenant (for tenancies not being renewed).
+ * How many months after tenancy start (or last check-in) before the
+ * annual check-in cron triggers a landlord check-in message.
+ * Under the Renters' Rights Act 2025, tenancies are periodic — there are no
+ * renewals. The check-in confirms the landlord's position (continue / rent
+ * review / Section 8 concern) every 12 months.
  */
-export const RENEWAL_CHECKOUT_INSPECTION_DAYS = 14 as const;
+export const ANNUAL_CHECK_IN_MONTHS = 12 as const;
+
+/**
+ * Days before the tenant's notice end date when CompliLet schedules the
+ * checkout inspection photo request.
+ */
+export const CHECKOUT_INSPECTION_NOTICE_DAYS = 14 as const;
+
+/**
+ * Minimum notice period (months) a tenant must give under the Renters' Rights
+ * Act 2025 before vacating a periodic assured tenancy.
+ */
+export const TENANT_NOTICE_PERIOD_MONTHS = 2 as const;
+
+/**
+ * Minimum notice period (months) that must elapse between the service date
+ * of a Section 13 rent increase notice and its effective date.
+ */
+export const SECTION_13_NOTICE_PERIOD_MONTHS = 2 as const;
+
+/**
+ * Minimum interval (months) between successive Section 13 rent increases.
+ * Enforced deterministically — the AI cannot override this.
+ */
+export const SECTION_13_FREQUENCY_MONTHS = 12 as const;
 
 // ─── Inspection Schedule ───────────────────────────────────────────────────────
 

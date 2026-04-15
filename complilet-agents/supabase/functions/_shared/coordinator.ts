@@ -39,7 +39,14 @@ import { runComplianceAutopilot } from "./agents/compliance-autopilot.ts";
 import { runRentMonitor } from "./agents/rent-monitor.ts";
 import { runMaintenanceAgent } from "./agents/maintenance-agent.ts";
 import { runInspectionAgent } from "./agents/inspection-agent.ts";
-import { runRenewalAgent } from "./agents/renewal-agent.ts";
+import { runTenancyCheckIn } from "./agents/tenancy-check-in.ts";
+import { runRentReview } from "./agents/rent-review.ts";
+import { runTenancyAgreementAgent } from "./agents/tenancy-agreement-agent.ts";
+import {
+  handleContractorFlow,
+  handleContractorReply,
+  handleMarketplacePickFromCoordinator,
+} from "./contractor-flow.ts";
 import { runNrlTaxAgent, detectOverseasLandlord } from "./agents/nrl-tax-agent.ts";
 import {
   checkEscalation,
@@ -134,6 +141,14 @@ async function _route(input: CoordinatorInput): Promise<void> {
       await handleLandlordCommand(command, input);
       return;
     }
+  }
+
+  // ── 2b. Contractor inbound path ───────────────────────────────────────
+  // Inbound message from a phone number that matches a contractor record.
+  // Forwards their availability reply to the relevant landlord for approval.
+  if (senderRole === "unknown" && text) {
+    const handled = await handleContractorReply(phone, text);
+    if (handled) return;
   }
 
   // ── 3. Referee path ───────────────────────────────────────────────────
@@ -360,15 +375,6 @@ async function _routeBySessionStatus(
       await routeActiveTenancy(input, phone);
       break;
 
-    case "renewal":
-      await runRenewalAgent({
-        message: input.message,
-        sessionId: input.sessionId,
-        landlordId: input.landlordId,
-        senderRole: input.senderRole,
-      });
-      break;
-
     case "abandoned":
     case "rejected": {
       const label = status === "abandoned" ? "ended" : "closed";
@@ -445,6 +451,54 @@ async function routeActiveTenancy(
     }
   }
 
+  // ── Check for pending contractor flow (3-option) conversation ─────────
+  // Used by both Compliance Autopilot and Maintenance Triage. Catches
+  // landlord replies of 1 / 2 / 3 / contractor name+phone / YES / NO mid-flow.
+  if (landlordId && input.senderRole === "landlord") {
+    const { data: cfRow } = await supabase
+      .from("coordinator_state")
+      .select("contractor_flow_state")
+      .eq("landlord_id", landlordId)
+      .maybeSingle();
+
+    const cfStep = (cfRow?.contractor_flow_state as { step?: string } | null)?.step;
+    const isPendingCf = cfStep && cfStep !== "idle" && cfStep !== "confirmed";
+
+    if (isPendingCf) {
+      // Marketplace pick has its own intermediate step
+      if (cfStep === "awaiting_marketplace_pick") {
+        const handled = await handleMarketplacePickFromCoordinator(landlordId, phone, text);
+        if (handled) return;
+      }
+      await handleContractorFlow(landlordId, phone, text);
+      return;
+    }
+  }
+
+  // ── Check for pending tenancy agreement conversation ─────────────────
+  // Entered when move-in pack seeds tenancy_agreement_state and the landlord
+  // replies YES/NO or is mid-flow collecting emails / special terms.
+  if (landlordId) {
+    const { data: agCoordState } = await supabase
+      .from("coordinator_state")
+      .select("tenancy_agreement_state")
+      .eq("landlord_id", landlordId)
+      .maybeSingle();
+
+    const agStep = (agCoordState?.tenancy_agreement_state as { step?: string } | null)?.step;
+    const hasPendingAgreementStep = agStep && agStep !== "idle";
+    const isAgreementKeyword = /\b(agreement|tenancy\s+agreement|TA|sign|e.?sign|generate\s+agreement)\b/i.test(text);
+
+    if (hasPendingAgreementStep || isAgreementKeyword) {
+      await runTenancyAgreementAgent({
+        landlordId,
+        landlordPhone: phone,
+        inboundText: text,
+      });
+      return;
+    }
+  }
+
   // ── Check for pending NRL conversation state ────────────────────────
   // Routes overseas-landlord confirmation and NRL1 flows, plus NRL keyword queries.
   if (landlordId) {
@@ -467,6 +521,56 @@ async function routeActiveTenancy(
         message: input.message,
         landlordId,
         landlordPhone: phone,
+      });
+      return;
+    }
+  }
+
+  // ── Check for in-progress rent review conversation ───────────────────
+  if (landlordId) {
+    const { data: rrCoordState } = await supabase
+      .from("coordinator_state")
+      .select("rent_review_state")
+      .eq("landlord_id", landlordId)
+      .maybeSingle();
+
+    const rrStep = (rrCoordState?.rent_review_state as { step?: string } | null)?.step;
+    const hasPendingRentReviewStep = rrStep && rrStep !== "idle";
+    const isRentReviewKeyword = /\b(rent\s+review|section\s+13|increase\s+rent|rent\s+increase|new\s+rent|raise\s+rent)\b/i.test(text);
+
+    if (hasPendingRentReviewStep || isRentReviewKeyword) {
+      await runRentReview({
+        landlordId,
+        landlordPhone: phone,
+        tenancyId: input.sessionId,
+        sessionId: input.sessionId,
+        inboundMessage: input.message.text
+          ? { from: phone, text: input.message.text, senderRole: input.senderRole as "landlord" | "tenant" }
+          : undefined,
+      });
+      return;
+    }
+  }
+
+  // ── Check for in-progress tenancy check-in conversation ─────────────
+  if (landlordId) {
+    const { data: ciCoordState } = await supabase
+      .from("coordinator_state")
+      .select("check_in_state")
+      .eq("landlord_id", landlordId)
+      .maybeSingle();
+
+    const ciStep = (ciCoordState?.check_in_state as { step?: string } | null)?.step;
+    const hasPendingCheckInStep = ciStep && ciStep !== "idle";
+    const isCheckInKeyword = /\b(leaving|leave|giving\s+notice|want\s+to\s+move|moving\s+out|vacate|end\s+my\s+tenancy|notice\s+to\s+quit)\b/i.test(text);
+
+    if (hasPendingCheckInStep || isCheckInKeyword) {
+      await runTenancyCheckIn({
+        message: input.message,
+        sessionId: input.sessionId,
+        landlordId: input.landlordId,
+        tenancyId: input.sessionId,
+        senderRole: input.senderRole as "landlord" | "tenant" | "referee" | "unknown",
       });
       return;
     }
@@ -547,12 +651,25 @@ async function routeActiveTenancy(
     });
     return;
   }
-  if (/\b(renew|renewal|extend|end\s+of\s+tenancy|moving\s+out|leave|section\s+21|evict)\b/.test(text)) {
-    await runRenewalAgent({
+  if (/\b(rent\s+review|section\s+13|increase\s+rent|rent\s+increase|new\s+rent|raise\s+rent)\b/.test(text)) {
+    await runRentReview({
+      landlordId: input.landlordId ?? "",
+      landlordPhone: phone,
+      tenancyId: input.sessionId,
+      sessionId: input.sessionId,
+      inboundMessage: input.message.text
+        ? { from: phone, text: input.message.text, senderRole: input.senderRole as "landlord" | "tenant" }
+        : undefined,
+    });
+    return;
+  }
+  if (/\b(leaving|leave|giving\s+notice|want\s+to\s+move|moving\s+out|vacate|end\s+my\s+tenancy|notice\s+to\s+quit)\b/.test(text)) {
+    await runTenancyCheckIn({
       message: input.message,
       sessionId: input.sessionId,
       landlordId: input.landlordId,
-      senderRole: input.senderRole,
+      tenancyId: input.sessionId,
+      senderRole: input.senderRole as "landlord" | "tenant" | "referee" | "unknown",
     });
     return;
   }
@@ -565,7 +682,7 @@ async function routeActiveTenancy(
       "• *MAINTENANCE* — report a repair\n" +
       "• *INSPECTION* — schedule or submit photos\n" +
       "• *COMPLIANCE* — certificates and deadlines\n" +
-      "• *RENEWAL* — lease renewal\n" +
+      "• *RENT REVIEW* — Section 13 rent increase\n" +
       "• *STATUS* — tenancy overview\n" +
       "• *HELP* — all commands",
   );
@@ -623,7 +740,7 @@ async function handleLandlordCommand(
           "💰 *PRICING* — View plan details and pricing\n" +
           "❓ *HELP* — Show this message\n\n" +
           "During an active tenancy you can also type:\n" +
-          "*RENT* · *MAINTENANCE* · *INSPECTION* · *COMPLIANCE* · *RENEWAL*",
+          "*RENT* · *MAINTENANCE* · *INSPECTION* · *COMPLIANCE* · *RENT REVIEW*",
       );
       break;
 

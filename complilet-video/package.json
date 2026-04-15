@@ -1,0 +1,19 @@
+{
+  "name": "complilet-video",
+  "version": "1.0.0",
+  "description": "CompliLet product demo video — built with Remotion",
+  "scripts": {
+    "start": "remotion studio",
+    "build": "remotion render CompliLetDemo out/complilet-demo.mp4 --codec=h264",
+    "build:gif": "remotion render CompliLetDemo out/complilet-demo.gif",
+    "build:short": "remotion render CompliLetShort out/complilet-short.mp4 --codec=h264"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.250",
+    "remotion": "4.0.250"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.0",
+    "typescript": "^5.4.5"
+  }
+}

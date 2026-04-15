@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-CompliLet is a WhatsApp-native, AI-powered tenant screening and tenancy management platform for UK self-managing landlords. The product operates entirely within WhatsApp — no app download, no dashboard login. A managed agent system orchestrates multi-step workflows: tenant pre-qualification, document collection, Right to Rent compliance, reference chasing, move-in pack generation, and ongoing tenancy management (rent reminders, compliance autopilot, maintenance triage, inspections, renewals).
+CompliLet is a WhatsApp-native, AI-powered tenant screening and tenancy management platform for UK self-managing landlords. The product operates entirely within WhatsApp — no app download, no dashboard login. A managed agent system orchestrates multi-step workflows: tenant pre-qualification, document collection, Right to Rent compliance, reference chasing, move-in pack generation, and ongoing tenancy management (rent reminders, compliance autopilot, maintenance triage, inspections, Section 13 rent reviews, and periodic tenancy check-ins under the Renters' Rights Act 2025).
 
 ## Brand Identity
 
@@ -194,7 +194,8 @@ complilet-agents/
 │       ├── rent-monitor/         # Rent reminders + arrears chasing
 │       ├── maintenance-agent/    # Issue triage via Claude vision
 │       ├── inspection-agent/     # Photo-based property checks
-│       ├── renewal-agent/        # Tenancy renewal orchestration
+│       ├── tenancy-check-in/     # Periodic check-in + tenant exit (RRA 2025)
+│       ├── rent-review/          # Section 13 rent increase process (RRA 2025)
 │       └── nrl-tax-agent/        # Overseas landlord NRL compliance
 ├── lib/
 │   ├── whatsapp.ts               # Meta Cloud API send/receive helpers
@@ -213,7 +214,8 @@ complilet-agents/
 │   ├── rent-monitor.md
 │   ├── maintenance-agent.md
 │   ├── inspection-agent.md
-│   ├── renewal-agent.md
+│   ├── tenancy-check-in.md
+│   ├── rent-review.md
 │   └── nrl-tax-agent.md
 └── package.json
 ```
@@ -233,7 +235,7 @@ complilet-agents/
 
 ## Important Context
 
-- **AGENT_COMPLIANCE_RULES.md** must be read before writing any agent system prompt. It contains legally mandated rules for every agent including anti-discrimination enforcement, data subject rights handling, safeguarding triggers, and safety-critical hardcoded responses.
+- **`complilet-agents/AGENT_COMPLIANCE_RULES.md`** must be read before writing any agent system prompt. It contains legally mandated rules for every agent including anti-discrimination enforcement, data subject rights handling, safeguarding triggers, Section 13 rent review constraints, and safety-critical hardcoded responses.
 - The Renters' Rights Act takes effect 1 May 2026 — this is the primary marketing urgency
 - Making Tax Digital for landlords earning £50K+ starts 6 April 2026
 - Right to Rent fines are up to £3,000 per tenant for non-compliance
