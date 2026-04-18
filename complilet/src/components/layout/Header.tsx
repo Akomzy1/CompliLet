@@ -21,7 +21,7 @@ function Logo({ scrolled }: { scrolled: boolean }) {
   return (
     <Link
       href="/"
-      className="inline-flex items-center gap-0.5 shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal rounded-sm"
+      className="inline-flex items-center shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal rounded-sm"
       aria-label="CompliLet — home"
     >
       <span
@@ -34,7 +34,7 @@ function Logo({ scrolled }: { scrolled: boolean }) {
       </span>
       {/* Teal dot — sits at the tail of the final "t" */}
       <span
-        className="w-1.5 h-1.5 rounded-full bg-teal shrink-0 self-end ml-0.5"
+        className="w-1.5 h-1.5 rounded-full bg-teal shrink-0 self-end -ml-px"
         aria-hidden="true"
       />
     </Link>
