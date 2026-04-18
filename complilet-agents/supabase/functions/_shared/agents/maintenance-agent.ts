@@ -1,3 +1,7 @@
+// MARKETPLACE: Phase 2 feature. Currently disabled via MARKETPLACE_ENABLED flag.
+// When ready to enable, set MARKETPLACE_ENABLED = true in contractor-flow.ts
+// and the 3-option flow will activate automatically.
+
 /**
  * CompliLet — Maintenance Triage Agent
  *
@@ -46,7 +50,7 @@ import Anthropic from "npm:@anthropic-ai/sdk@0.24";
 import { supabase } from "../supabase.ts";
 import { sendTextMessage } from "../whatsapp.ts";
 import {
-  CLAUDE_MODEL,
+  MODELS,
   CLAUDE_MAX_TOKENS,
   MAINTENANCE_AUTO_AUTHORISE_LIMIT_GBP,
   EMERGENCY_MAINTENANCE_KEYWORDS,
@@ -715,7 +719,7 @@ async function callClaudeAnalysis(
   let rawText = "";
   try {
     const response = await anthropic.messages.create({
-      model: CLAUDE_MODEL,
+      model: MODELS.FAST,
       max_tokens: CLAUDE_MAX_TOKENS,
       system: MAINTENANCE_SYSTEM_PROMPT,
       messages: [{ role: "user", content }],

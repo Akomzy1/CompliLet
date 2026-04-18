@@ -112,10 +112,10 @@ export function Footer() {
               aria-label="CompliLet — home"
             >
               <span className="font-display font-bold text-xl text-navy">
-                CompliLet
+                Compli<span className="text-teal">Let</span>
               </span>
               <span
-                className="w-1.5 h-1.5 rounded-full bg-teal mb-0.5 ml-0.5"
+                className="w-1.5 h-1.5 rounded-full bg-teal self-end ml-0.5"
                 aria-hidden="true"
               />
             </Link>

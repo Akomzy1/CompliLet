@@ -29,7 +29,7 @@
 import Anthropic from "npm:@anthropic-ai/sdk@0.24";
 import { supabase } from "../supabase.ts";
 import { sendTextMessage, sendDocument } from "../whatsapp.ts";
-import { CLAUDE_MODEL, CLAUDE_MAX_TOKENS } from "../constants.ts";
+import { MODELS, CLAUDE_MAX_TOKENS } from "../constants.ts";
 import type {
   ParsedMessage,
   SessionStatus,
@@ -565,7 +565,7 @@ async function validateAdditionalRtrDoc(
 
   try {
     const response = await anthropic.messages.create({
-      model: CLAUDE_MODEL,
+      model: MODELS.ACCURATE,
       max_tokens: 512,
       messages: [{ role: "user", content }],
     });
@@ -885,7 +885,7 @@ async function generateLandlordMessage(
   try {
     const anthropic = new Anthropic({ apiKey: Deno.env.get("ANTHROPIC_API_KEY") });
     const response = await anthropic.messages.create({
-      model: CLAUDE_MODEL,
+      model: MODELS.ACCURATE,
       max_tokens: CLAUDE_MAX_TOKENS,
       messages: [{ role: "user", content: prompt }],
     });

@@ -22,7 +22,7 @@
 import Anthropic from "npm:@anthropic-ai/sdk@0.24";
 import { supabase } from "../supabase.ts";
 import { sendTextMessage } from "../whatsapp.ts";
-import { CLAUDE_MODEL, CLAUDE_MAX_TOKENS } from "../constants.ts";
+import { MODELS, CLAUDE_MAX_TOKENS } from "../constants.ts";
 import type { ParsedMessage, SessionStatus } from "../types.ts";
 
 // ─── Public interface ──────────────────────────────────────────────────────
@@ -124,7 +124,7 @@ export async function runPreQualifier(input: PreQualifierInput): Promise<void> {
     });
 
     const response = await anthropic.messages.create({
-      model: CLAUDE_MODEL,
+      model: MODELS.FAST,
       max_tokens: CLAUDE_MAX_TOKENS,
       system: systemPrompt,
       messages,

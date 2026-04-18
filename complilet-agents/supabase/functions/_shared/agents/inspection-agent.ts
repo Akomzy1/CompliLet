@@ -65,7 +65,7 @@ import {
 import { supabase } from "../supabase.ts";
 import { sendTextMessage, sendDocument } from "../whatsapp.ts";
 import {
-  CLAUDE_MODEL,
+  MODELS,
   CLAUDE_MAX_TOKENS,
 } from "../constants.ts";
 import type { ParsedMessage } from "../types.ts";
@@ -795,7 +795,7 @@ async function analyseWithClaude(
   });
 
   const response = await anthropic.messages.create({
-    model: CLAUDE_MODEL,
+    model: MODELS.FAST,
     max_tokens: CLAUDE_MAX_TOKENS * 2, // inspection reports need more tokens
     system: INSPECTION_SYSTEM_PROMPT,
     messages: [{ role: "user", content: imageBlocks }],

@@ -20,7 +20,7 @@
 import Anthropic from "npm:@anthropic-ai/sdk@0.24";
 import { supabase } from "../supabase.ts";
 import { sendTextMessage } from "../whatsapp.ts";
-import { CLAUDE_MODEL, CLAUDE_MAX_TOKENS } from "../constants.ts";
+import { MODELS, CLAUDE_MAX_TOKENS } from "../constants.ts";
 import type {
   ParsedMessage,
   SessionStatus,
@@ -380,7 +380,7 @@ async function handleTextMessage(ctx: TextContext): Promise<void> {
   const currentMessage = message.text ?? message.interactive?.title ?? "[No text]";
 
   const response = await anthropic.messages.create({
-    model: CLAUDE_MODEL,
+    model: MODELS.ACCURATE,
     max_tokens: CLAUDE_MAX_TOKENS,
     system: systemPrompt,
     messages: [
@@ -489,7 +489,7 @@ async function validateDocument(
   let rawJson = "";
   try {
     const response = await anthropic.messages.create({
-      model: CLAUDE_MODEL,
+      model: MODELS.ACCURATE,
       max_tokens: 1024,
       messages: [{ role: "user", content }],
     });

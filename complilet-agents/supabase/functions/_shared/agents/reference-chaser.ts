@@ -25,7 +25,7 @@
 import Anthropic from "npm:@anthropic-ai/sdk@0.24";
 import { supabase } from "../supabase.ts";
 import { sendTextMessage } from "../whatsapp.ts";
-import { CLAUDE_MODEL, REFERENCE_MAX_FOLLOW_UPS } from "../constants.ts";
+import { MODELS, REFERENCE_MAX_FOLLOW_UPS } from "../constants.ts";
 import type { ParsedMessage, SessionStatus } from "../types.ts";
 
 // ─── Public interface ──────────────────────────────────────────────────────
@@ -915,7 +915,7 @@ async function parseRefereeResponse(
   try {
     const anthropic = new Anthropic({ apiKey: Deno.env.get("ANTHROPIC_API_KEY") });
     const response = await anthropic.messages.create({
-      model: CLAUDE_MODEL,
+      model: MODELS.FAST,
       max_tokens: 512,
       system: systemPrompt,
       messages: [{ role: "user", content: userPrompt }],

@@ -156,7 +156,7 @@ const FEATURES: Feature[] = [
     icon: IconCalendarAlert,
     title: "Compliance Autopilot",
     description:
-      "Gas safety, EICR, EPC, deposit protection — every deadline tracked. Reminders at 90, 30, 14, 7, and 1 day with contractor recommendations.",
+      "Gas safety, EICR, EPC, deposit protection — every deadline tracked. Reminders at 90, 30, 14, 7, and 1 day. We coordinate with your existing contractors via WhatsApp — arranging dates, tenant access, and storing certificates.",
     tag: "Avoid £6,000 fines",
   },
   {
@@ -171,7 +171,7 @@ const FEATURES: Feature[] = [
     icon: IconWrenchAI,
     title: "Maintenance Triage",
     description:
-      "Tenant sends a photo of a problem. AI diagnoses, sends self-fix guides for simple issues, escalates with contractor recommendation for serious ones.",
+      "Tenant sends a photo of a problem. AI diagnoses, sends self-fix guides for simple issues, and coordinates with your own contractors for serious ones — arranging dates, tenant access, and follow-up.",
   },
   {
     id: "inspections",

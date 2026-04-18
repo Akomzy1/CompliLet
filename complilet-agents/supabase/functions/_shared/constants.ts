@@ -636,8 +636,24 @@ export const FUNCTION_TIMEOUT_MS = 25_000 as const;
 /** Maximum tokens for Claude response in agent functions */
 export const CLAUDE_MAX_TOKENS = 1_024 as const;
 
-/** Claude model ID used for all CompliLet agents */
-export const CLAUDE_MODEL = "claude-sonnet-4-6" as const;
+/**
+ * Claude model IDs for CompliLet agents.
+ *
+ * FAST   — High-volume conversational agents (pre-qualifier, reference chaser,
+ *          maintenance triage, compliance autopilot, rent monitor, coordinator).
+ * ACCURATE — Compliance-critical agents where accuracy matters more than speed
+ *          (document fraud detection, Section 13 rent review, Section 8 check-in,
+ *          NRL tax compliance, Right to Rent classification).
+ *
+ * Changing a model here applies to every agent that references it.
+ */
+export const MODELS = {
+  FAST:     "claude-sonnet-4-20250514",
+  ACCURATE: "claude-opus-4-7",
+} as const;
+
+/** @deprecated Use MODELS.FAST or MODELS.ACCURATE instead */
+export const CLAUDE_MODEL = MODELS.FAST;
 
 // ─── Deposit Protection Schemes ────────────────────────────────────────────────
 

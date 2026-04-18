@@ -66,6 +66,12 @@ export const FAQS = [
       "A UK letting agent typically charges 10–15% of monthly rent for full management — £150–£300/month on a £1,500/month property. CompliLet starts at £4.99 per tenant screening and provides full tenancy management from £14.99 per property per month, saving most landlords £130–£270 every month. There are no setup fees, no minimum contracts, and subscriptions can be cancelled at any time.",
   },
   {
+    id: "own-contractors",
+    question: "Do I have to use CompliLet's contractors?",
+    answer:
+      "No. CompliLet works with your existing tradespeople. When a compliance deadline approaches, we coordinate with the contractors you already trust via WhatsApp — arranging dates, tenant access, and storing certificates automatically. A curated contractor marketplace is coming in a future release.",
+  },
+  {
     id: "no-app",
     question: "Do I need to download an app?",
     answer:

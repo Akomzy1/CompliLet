@@ -146,14 +146,14 @@ const CONV_6: WhatsAppMessage[] = [
   {
     id: "6-2",
     direction: "out",
-    text: "Thanks — can you find me an engineer?",
+    text: "I've got my own gas engineer — Mike Smith, +447700123456",
     time: "08:04",
     status: "read",
   },
   {
     id: "6-3",
     direction: "in",
-    text: "Found 3 Gas Safe engineers available this week, all within 2 miles. Want me to send them the job details?",
+    text: "I've messaged Mike on WhatsApp to arrange a date. I'll coordinate tenant access and chase the certificate once the work is done.",
     time: "08:04",
   },
 ];

@@ -1,16 +1,27 @@
 /**
  * CompliLet — Contractor Flow (shared module)
  *
- * Reusable 3-option contractor selection used by BOTH the Compliance Autopilot
+ * MARKETPLACE: Phase 2 feature. Currently disabled via MARKETPLACE_ENABLED flag.
+ * When ready to enable, set MARKETPLACE_ENABLED = true in this file
+ * and the 3-option flow will activate automatically.
+ *
+ * Reusable contractor selection used by BOTH the Compliance Autopilot
  * and the Maintenance Triage agents.
+ *
+ * When MARKETPLACE_ENABLED = false (launch):
+ *   2 options: (1) I have my own contractor / (2) Already booked
+ *
+ * When MARKETPLACE_ENABLED = true (Phase 2):
+ *   3 options: (1) Find me a [trade] / (2) I have my own / (3) Already booked
+ *   With memory: (1) Re-use [contractor] / (2) Find different / (3) Already booked
  *
  * The flow:
  *
  *   1. presentContractorOptions() is called by either agent.
- *      - First checks for a "memory" match — has this landlord used a contractor
- *        before for the same trade at the same property?
- *      - If yes: offers (1) Re-use that contractor / (2) Find different / (3) Already booked
- *      - If no:  offers (1) Find a [trade] / (2) I have my own / (3) Already booked
+ *      - When MARKETPLACE_ENABLED and memory match: 3-option memory path
+ *      - When MARKETPLACE_ENABLED and no memory: 3-option marketplace path
+ *      - When !MARKETPLACE_ENABLED and memory: 3-option memory path (re-use is not marketplace)
+ *      - When !MARKETPLACE_ENABLED and no memory: 2-option path (own / already booked)
  *      - Stores the pending choice in coordinator_state.contractor_flow_state
  *
  *   2. handleContractorFlow() is called by the coordinator on every
@@ -18,9 +29,9 @@
  *      It walks through the steps:
  *
  *        awaiting_choice
- *          → "1" → marketplace lookup, log referral
- *          → "2" → ask for landlord's own contractor name + phone
- *          → "3" → schedule follow-up reminder for due date
+ *          → "1" → marketplace lookup (Phase 2) or own contractor
+ *          → "2" → ask for landlord's own contractor name + phone (or already booked)
+ *          → "3" → schedule follow-up reminder for due date (Phase 2 only)
  *
  *        awaiting_own_contractor
  *          → parse name + phone
@@ -47,6 +58,11 @@
 
 import { supabase } from "./supabase.ts";
 import { sendTextMessage } from "./whatsapp.ts";
+
+// ─── Feature Flag ──────────────────────────────────────────────────────────
+// Phase 2: Set to true to enable the "Find me a [trade]" marketplace option.
+// When false, landlords see 2 options: own contractor or already booked.
+export const MARKETPLACE_ENABLED = false;
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -126,31 +142,49 @@ export async function presentContractorOptions(
       ? `🚨 *URGENT:* ${job_type} reported. This needs immediate attention.\n\n`
       : "";
 
+  // Context line (compliance vs maintenance)
+  const contextLine = source === "compliance"
+    ? `Your *${job_type}* for ${property_address} is due in ${daysUntil(due_date)} day${daysUntil(due_date) === 1 ? "" : "s"}${dueText}. How would you like to arrange this?\n\n`
+    : `${input.tenant_name ?? "Your tenant"} has reported *${job_type}* at ${property_address}. This needs a ${tradeLabel}. How would you like to handle it?\n\n`;
+
   let message: string;
 
   if (memory) {
-    // Memory path — offer re-using the same contractor
+    // Memory path — offer re-using the same contractor (works regardless of MARKETPLACE_ENABLED
+    // because re-using a landlord's own contractor is not a marketplace feature)
+    if (MARKETPLACE_ENABLED) {
+      message =
+        urgencyBanner + contextLine +
+        `Last time, *${memory.name}* did your ${job_type} at this property. Would you like me to:\n\n` +
+        `1️⃣ Contact *${memory.name}* again\n` +
+        `2️⃣ Find a different ${tradeLabel}\n` +
+        `3️⃣ Already booked / arranged\n\n` +
+        `Reply *1*, *2*, or *3*.`;
+    } else {
+      // No marketplace — 3 options with memory (re-use / use different own / already booked)
+      message =
+        urgencyBanner + contextLine +
+        `Last time, *${memory.name}* did your ${job_type} at this property. Would you like me to:\n\n` +
+        `1️⃣ Contact *${memory.name}* again\n` +
+        `2️⃣ Use a different ${tradeLabel} (I'll help coordinate)\n` +
+        `3️⃣ Already booked / arranged\n\n` +
+        `Reply *1*, *2*, or *3*.`;
+    }
+  } else if (MARKETPLACE_ENABLED) {
+    // Phase 2: marketplace path — 3 options including "Find me a [trade]"
     message =
-      urgencyBanner +
-      (source === "compliance"
-        ? `Your *${job_type}* for ${property_address} is due in ${daysUntil(due_date)} day${daysUntil(due_date) === 1 ? "" : "s"}${dueText}.\n\n`
-        : `${input.tenant_name ?? "Your tenant"} has reported *${job_type}* at ${property_address}. This needs a ${tradeLabel}.\n\n`) +
-      `Last time, *${memory.name}* did your ${job_type} at this property. Would you like me to:\n\n` +
-      `1️⃣ Contact *${memory.name}* again\n` +
-      `2️⃣ Find a different ${tradeLabel}\n` +
-      `3️⃣ Already booked / arranged\n\n` +
-      `Reply *1*, *2*, or *3*.`;
-  } else {
-    // First-time path — original 3 options
-    message =
-      urgencyBanner +
-      (source === "compliance"
-        ? `Your *${job_type}* for ${property_address} is due in ${daysUntil(due_date)} day${daysUntil(due_date) === 1 ? "" : "s"}${dueText}. How would you like to arrange this?\n\n`
-        : `${input.tenant_name ?? "Your tenant"} has reported *${job_type}* at ${property_address}. This needs a ${tradeLabel}. How would you like to handle it?\n\n`) +
+      urgencyBanner + contextLine +
       `1️⃣ Find me a ${tradeLabel} (I'll recommend vetted professionals near you)\n` +
       `2️⃣ I have my own ${tradeLabel} (I'll help coordinate)\n` +
       `3️⃣ Already ${source === "compliance" ? "booked" : "arranged"} (just send me the ${source === "compliance" ? "certificate when done" : "update when fixed"})\n\n` +
       `Reply *1*, *2*, or *3*.`;
+  } else {
+    // Launch: no marketplace — 2 options only
+    message =
+      urgencyBanner + contextLine +
+      `1️⃣ I have my own ${tradeLabel} (I'll help coordinate with them)\n` +
+      `2️⃣ Already ${source === "compliance" ? "booked" : "arranged"} (just send me the ${source === "compliance" ? "certificate when done" : "update when fixed"})\n\n` +
+      `Reply *1* or *2*.`;
   }
 
   // Save state
@@ -231,41 +265,80 @@ async function handleChoice(
 ): Promise<void> {
   const choice = text.replace(/[^123]/g, "")[0];
   const tradeLabel = TRADE_LABELS[state.trade] ?? state.trade;
+  const hasMemory = !!(state.contractor_id && state.contractor_name && state.contractor_phone);
 
-  if (choice === "1") {
-    // Option 1: marketplace OR re-use memory contractor
-    if (state.contractor_id && state.contractor_name && state.contractor_phone) {
-      // Memory path — re-use the same contractor
+  // ── Remap option numbers based on MARKETPLACE_ENABLED + memory state ──
+  //
+  // With memory (all modes):      1=re-use  2=different own  3=already booked
+  // Marketplace enabled, no mem:  1=marketplace  2=own  3=already booked
+  // Marketplace disabled, no mem: 1=own  2=already booked  (no 3)
+  //
+  // This mapping normalises all paths into: own / marketplace / re-use / booked.
+
+  if (hasMemory) {
+    // Memory path (same for both flags)
+    if (choice === "1") {
       await reachOutToContractor(landlordId, landlordPhone, state, true);
       return;
     }
-    // Marketplace lookup
-    await runMarketplaceFlow(landlordId, landlordPhone, state);
-    return;
-  }
-
-  if (choice === "2") {
-    // Option 2: landlord's own contractor — collect details
-    await saveState(landlordId, { ...state, step: "awaiting_own_contractor" });
-    await sendTextMessage(
-      landlordPhone,
-      `What's your ${tradeLabel}'s *name and WhatsApp number*?\n\n` +
-        `Format: *Name, +44...*  (e.g. "Mike Smith, +447700900123")\n\n` +
-        `I'll message them to coordinate a date and arrange access with ${state.tenant_name ?? "your tenant"}.`,
-    );
-    return;
-  }
-
-  if (choice === "3") {
-    // Option 3: already booked
-    await markAlreadyBooked(landlordId, landlordPhone, state);
-    return;
+    if (choice === "2") {
+      // Different contractor — ask for details (own contractor flow)
+      await saveState(landlordId, { ...state, step: "awaiting_own_contractor", contractor_id: undefined, contractor_name: undefined, contractor_phone: undefined });
+      await sendTextMessage(
+        landlordPhone,
+        `What's your ${tradeLabel}'s *name and WhatsApp number*?\n\n` +
+          `Format: *Name, +44...*  (e.g. "Mike Smith, +447700900123")\n\n` +
+          `I'll message them to coordinate a date and arrange access with ${state.tenant_name ?? "your tenant"}.`,
+      );
+      return;
+    }
+    if (choice === "3") {
+      await markAlreadyBooked(landlordId, landlordPhone, state);
+      return;
+    }
+  } else if (MARKETPLACE_ENABLED) {
+    // Phase 2: marketplace enabled, no memory — 3 options
+    if (choice === "1") {
+      await runMarketplaceFlow(landlordId, landlordPhone, state);
+      return;
+    }
+    if (choice === "2") {
+      await saveState(landlordId, { ...state, step: "awaiting_own_contractor" });
+      await sendTextMessage(
+        landlordPhone,
+        `What's your ${tradeLabel}'s *name and WhatsApp number*?\n\n` +
+          `Format: *Name, +44...*  (e.g. "Mike Smith, +447700900123")\n\n` +
+          `I'll message them to coordinate a date and arrange access with ${state.tenant_name ?? "your tenant"}.`,
+      );
+      return;
+    }
+    if (choice === "3") {
+      await markAlreadyBooked(landlordId, landlordPhone, state);
+      return;
+    }
+  } else {
+    // Launch: no marketplace, no memory — 2 options (1=own, 2=already booked)
+    if (choice === "1") {
+      await saveState(landlordId, { ...state, step: "awaiting_own_contractor" });
+      await sendTextMessage(
+        landlordPhone,
+        `What's your ${tradeLabel}'s *name and WhatsApp number*?\n\n` +
+          `Format: *Name, +44...*  (e.g. "Mike Smith, +447700900123")\n\n` +
+          `I'll message them to coordinate a date and arrange access with ${state.tenant_name ?? "your tenant"}.`,
+      );
+      return;
+    }
+    if (choice === "2") {
+      await markAlreadyBooked(landlordId, landlordPhone, state);
+      return;
+    }
   }
 
   // Invalid input — reprompt
+  const validOptions = (!hasMemory && !MARKETPLACE_ENABLED) ? "*1* or *2*" : "*1*, *2*, or *3*";
   await sendTextMessage(
     landlordPhone,
-    `Please reply *1*, *2*, or *3* to choose how to handle this.`,
+    `Please reply ${validOptions} to choose how to handle this.`,
   );
 }
 
@@ -308,10 +381,10 @@ async function runMarketplaceFlow(
 
   // Show top 3
   const lines: string[] = [`*Top 3 ${tradeLabel}s in your area:*\n`];
-  contractors.forEach((c, i) => {
-    const stars = "★".repeat(Math.round(c.rating as number)) +
-      "☆".repeat(5 - Math.round(c.rating as number));
-    lines.push(`${i + 1}. *${c.name}*\n   ${stars} (${(c.rating as number).toFixed(1)})\n   📞 ${c.phone}`);
+  (contractors as Array<{ id: string; name: string; phone: string; rating: number }>).forEach((c, i) => {
+    const stars = "★".repeat(Math.round(c.rating)) +
+      "☆".repeat(5 - Math.round(c.rating));
+    lines.push(`${i + 1}. *${c.name}*\n   ${stars} (${c.rating.toFixed(1)})\n   📞 ${c.phone}`);
   });
   lines.push(`\nReply with the *number* (1, 2 or 3) of your choice and I'll coordinate the booking.`);
   lines.push(`Or reply *NONE* to find your own.`);
@@ -331,7 +404,7 @@ async function runMarketplaceFlow(
         contractor_flow_state: {
           ...state,
           step: "awaiting_marketplace_pick",
-          marketplace_candidates: contractors.map((c) => ({
+          marketplace_candidates: (contractors as Array<{ id: string; name: string; phone: string; rating: number }>).map((c) => ({
             id:     c.id,
             name:   c.name,
             phone:  c.phone,

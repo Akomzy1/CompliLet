@@ -1,3 +1,7 @@
+// MARKETPLACE: Phase 2 feature. Currently disabled via MARKETPLACE_ENABLED flag.
+// When ready to enable, set MARKETPLACE_ENABLED = true in contractor-flow.ts
+// and the 3-option flow will activate automatically.
+
 /**
  * CompliLet — Compliance Autopilot Agent
  *

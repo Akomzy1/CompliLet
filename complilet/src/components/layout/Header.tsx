@@ -30,11 +30,11 @@ function Logo({ scrolled }: { scrolled: boolean }) {
           scrolled ? "text-navy" : "text-white",
         ].join(" ")}
       >
-        CompliLet
+        Compli<span className="text-teal">Let</span>
       </span>
-      {/* Teal dot — always teal regardless of scroll state */}
+      {/* Teal dot — sits at the tail of the final "t" */}
       <span
-        className="w-1.5 h-1.5 rounded-full bg-teal shrink-0 mb-0.5 ml-0.5"
+        className="w-1.5 h-1.5 rounded-full bg-teal shrink-0 self-end ml-0.5"
         aria-hidden="true"
       />
     </Link>
