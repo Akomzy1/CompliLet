@@ -108,14 +108,14 @@ export function Footer() {
             {/* Logo */}
             <Link
               href="/"
-              className="inline-flex items-center mb-4"
+              className="inline-flex items-baseline mb-4"
               aria-label="CompliLet — home"
             >
               <span className="font-display font-bold text-xl text-navy">
                 Compli<span className="text-teal">Let</span>
               </span>
               <span
-                className="w-1.5 h-1.5 rounded-full bg-teal self-end -ml-px"
+                className="w-1.5 h-1.5 rounded-full bg-teal -ml-px"
                 aria-hidden="true"
               />
             </Link>
