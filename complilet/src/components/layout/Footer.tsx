@@ -115,7 +115,7 @@ export function Footer() {
                 Compli<span className="text-teal">Let</span>
               </span>
               <span
-                className="w-1.5 h-1.5 rounded-full bg-teal -ml-px"
+                className="w-1.5 h-1.5 rounded-full bg-teal ml-px"
                 aria-hidden="true"
               />
             </Link>

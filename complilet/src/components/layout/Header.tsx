@@ -34,7 +34,7 @@ function Logo({ scrolled }: { scrolled: boolean }) {
       </span>
       {/* Teal dot — sits at the tail of the final "t" */}
       <span
-        className="w-1.5 h-1.5 rounded-full bg-teal shrink-0 -ml-px"
+        className="w-1.5 h-1.5 rounded-full bg-teal shrink-0 ml-px"
         aria-hidden="true"
       />
     </Link>
