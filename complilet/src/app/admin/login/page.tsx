@@ -1,11 +1,11 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { COOKIE_NAME, COOKIE_MAX_AGE } from "@/middleware";
+import { COOKIE_NAME, COOKIE_MAX_AGE } from "@/proxy";
 
 async function loginAction(formData: FormData) {
   "use server";
   const password = formData.get("password") as string;
-  const from = (formData.get("from") as string) || "/internal/escalations";
+  const from = (formData.get("from") as string) || "/admin";
   const expected = process.env.INTERNAL_DASHBOARD_PASSWORD ?? "";
 
   if (!expected) {
@@ -13,7 +13,7 @@ async function loginAction(formData: FormData) {
   }
 
   if (password !== expected) {
-    redirect(`/internal/login?error=1&from=${encodeURIComponent(from)}`);
+    redirect(`/admin/login?error=1&from=${encodeURIComponent(from)}`);
   }
 
   const store = await cookies();
@@ -34,24 +34,32 @@ interface Props {
 
 export default async function LoginPage({ searchParams }: Props) {
   const params = await searchParams;
-  const from = params.from ?? "/internal/escalations";
+  const from = params.from ?? "/admin";
   const hasError = !!params.error;
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-950">
-      <div className="w-full max-w-sm rounded-xl border border-gray-800 bg-gray-900 p-8 shadow-xl">
+    <div className="flex min-h-dvh items-center justify-center bg-admin-navy font-ui">
+      <div className="w-full max-w-sm rounded-2xl border border-admin-navy-soft bg-[#0E2747] p-8 shadow-trust">
         <div className="mb-8 text-center">
-          <p className="mt-1 text-xs font-semibold tracking-widest text-teal-400 uppercase">
-            CompliLet Internal
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-admin-nav-active">
+            CompliLet
           </p>
-          <h1 className="mt-3 text-xl font-semibold text-gray-100">Sign in</h1>
+          <h1 className="mt-2 font-display text-2xl font-semibold text-white">
+            Admin console
+          </h1>
+          <p className="mt-1 text-sm text-admin-nav-text">
+            Sign in to continue
+          </p>
         </div>
 
         <form action={loginAction}>
           <input type="hidden" name="from" value={from} />
 
           <div className="mb-4">
-            <label htmlFor="password" className="mb-1.5 block text-sm text-gray-400">
+            <label
+              htmlFor="password"
+              className="mb-1.5 block text-sm font-medium text-admin-nav-text"
+            >
               Password
             </label>
             <input
@@ -61,20 +69,23 @@ export default async function LoginPage({ searchParams }: Props) {
               required
               autoFocus
               autoComplete="current-password"
-              className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 outline-none ring-teal-500 transition focus:border-teal-500 focus:ring-1"
+              className="w-full rounded-lg border border-admin-navy-soft bg-admin-navy px-3 py-2.5 text-sm text-white placeholder-admin-mute outline-none transition focus:border-admin-nav-active focus:ring-2 focus:ring-admin-nav-active/40"
               placeholder="Enter dashboard password"
             />
           </div>
 
           {hasError && (
-            <p className="mb-4 rounded-lg bg-red-950/50 px-3 py-2 text-sm text-red-400">
+            <p
+              role="alert"
+              className="mb-4 rounded-lg bg-red-950/60 px-3 py-2 text-sm text-red-300"
+            >
               Incorrect password. Try again.
             </p>
           )}
 
           <button
             type="submit"
-            className="mt-2 w-full rounded-lg bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-500 active:scale-[0.98]"
+            className="mt-2 w-full rounded-lg bg-admin-teal px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0C5C48] active:scale-[0.98]"
           >
             Sign in
           </button>

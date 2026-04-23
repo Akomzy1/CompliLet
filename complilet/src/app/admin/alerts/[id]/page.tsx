@@ -10,7 +10,7 @@ async function resolveAction(formData: FormData) {
   const resolution = (formData.get("resolution") as string).trim();
   const resolvedBy = (formData.get("resolved_by") as string | null)?.trim() || "dashboard";
 
-  if (!resolution) redirect(`/internal/escalations/${id}?error=1`);
+  if (!resolution) redirect(`/admin/alerts/${id}?error=1`);
 
   const now = new Date().toISOString();
   await supabaseAdmin
@@ -24,7 +24,7 @@ async function resolveAction(formData: FormData) {
     .update({ active_escalation_id: null, updated_at: now })
     .eq("active_escalation_id", id);
 
-  redirect("/internal/escalations");
+  redirect("/admin/alerts");
 }
 
 async function takeOverAction(formData: FormData) {
@@ -35,7 +35,7 @@ async function takeOverAction(formData: FormData) {
     .update({ status: "in_progress", updated_at: new Date().toISOString() })
     .eq("id", id)
     .eq("status", "open");
-  redirect(`/internal/escalations/${id}`);
+  redirect(`/admin/alerts/${id}`);
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -102,8 +102,8 @@ export default async function EscalationDetailPage({ params, searchParams }: Pro
   return (
     <div className="max-w-4xl">
       {/* Back */}
-      <Link href="/internal/escalations" className="mb-6 inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-300">
-        ← Back to escalations
+      <Link href="/admin/alerts" className="mb-6 inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-300">
+        ← Back to alerts
       </Link>
 
       {/* Header */}

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Outfit } from "next/font/google";
+import { Outfit, DM_Sans } from "next/font/google";
 import Script from "next/script";
 import { Analytics } from "@vercel/analytics/react";
 import "../styles/globals.css";
@@ -14,6 +14,7 @@ import { SEO_DEFAULTS, COMPANY } from "@/lib/constants";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { MobileStickyBar } from "@/components/layout/MobileStickyBar";
+import { PublicChrome } from "@/components/layout/PublicChrome";
 
 // ─── Fonts ─────────────────────────────────────────────────────────────────────
 // Outfit: loaded via next/font for optimal performance + CLS prevention
@@ -22,6 +23,14 @@ const outfit = Outfit({
   variable: "--font-outfit",
   display: "swap",
   weight: ["300", "400", "500", "600", "700"],
+});
+
+// DM Sans: body + UI copy on admin console (paired with Outfit headings)
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  variable: "--font-dm-sans",
+  display: "swap",
+  weight: ["400", "500", "600", "700"],
 });
 
 // Clash Display: self-hosted via Fontshare CDN (loaded in <head> below)
@@ -108,7 +117,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en-GB" className={`${outfit.variable} h-full`}>
+    <html lang="en-GB" className={`${outfit.variable} ${dmSans.variable} h-full`}>
       <head>
         {/* Clash Display — Fontshare CDN */}
         <link rel="preconnect" href="https://api.fontshare.com" />
@@ -143,17 +152,20 @@ export default function RootLayout({
           Skip to main content
         </a>
 
-        <Header />
+        <PublicChrome>
+          <Header />
+        </PublicChrome>
 
         {/* flex-1 ensures footer stays at bottom when content is short */}
         <div className="flex-1 flex flex-col">
           {children}
         </div>
 
-        <Footer />
-
-        {/* Mobile sticky WhatsApp bar — shown after hero scrolls out of view */}
-        <MobileStickyBar />
+        <PublicChrome>
+          <Footer />
+          {/* Mobile sticky WhatsApp bar — shown after hero scrolls out of view */}
+          <MobileStickyBar />
+        </PublicChrome>
 
         <Analytics />
 

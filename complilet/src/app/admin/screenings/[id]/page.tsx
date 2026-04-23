@@ -85,8 +85,8 @@ export default async function SessionDetailPage({ params }: Props) {
 
   return (
     <div className="max-w-4xl">
-      <Link href="/internal/sessions" className="mb-6 inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-300">
-        ← Back to sessions
+      <Link href="/admin/screenings" className="mb-6 inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-300">
+        ← Back to screenings
       </Link>
 
       {/* Header */}
@@ -144,7 +144,7 @@ export default async function SessionDetailPage({ params }: Props) {
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-gray-600">{fmtDate(esc.created_at)}</span>
                   <Link
-                    href={`/internal/escalations/${esc.id}`}
+                    href={`/admin/alerts/${esc.id}`}
                     className="rounded bg-gray-800 px-2 py-0.5 text-xs text-gray-400 hover:text-gray-200"
                   >
                     View

@@ -100,7 +100,7 @@ export default async function SessionsPage({ searchParams }: Props) {
           {filters.map((f) => (
             <Link
               key={f.value}
-              href={`/internal/sessions?status=${f.value}`}
+              href={`/admin/screenings?status=${f.value}`}
               className={`rounded px-3 py-1.5 text-sm transition ${
                 statusFilter === f.value
                   ? "bg-gray-700 text-gray-100"
@@ -156,7 +156,7 @@ export default async function SessionsPage({ searchParams }: Props) {
                   <td className="px-4 py-3 text-gray-500">{fmtDate(sess.updated_at)}</td>
                   <td className="px-4 py-3">
                     <Link
-                      href={`/internal/sessions/${sess.id}`}
+                      href={`/admin/screenings/${sess.id}`}
                       className="rounded bg-gray-800 px-2.5 py-1 text-xs text-gray-300 transition hover:bg-gray-700"
                     >
                       View

@@ -20,10 +20,23 @@ const config: Config = {
         "muted-gray": "#6B7280",
         "alert-red": "#DC2626",
         "success-green": "#16A34A",
+        // ── Admin console palette ─────────────────────────────────────
+        admin: {
+          navy:        "#0B1F3A", // sidebar bg, primary surfaces
+          "navy-soft": "#112A4A", // sidebar item hover
+          teal:        "#0F6E56", // success / positive
+          cream:       "#FAF7F0", // content background
+          ink:         "#0F172A", // primary text
+          mute:        "#64748B", // secondary text
+          line:        "#E2E8F0", // dividers / borders
+          "nav-text":  "#B5D4F4", // sidebar idle text
+          "nav-active":"#85B7EB", // sidebar active text
+        },
       },
       fontFamily: {
         display: ["var(--font-clash-display)", "sans-serif"],
         body: ["var(--font-outfit)", "sans-serif"],
+        ui: ["var(--font-dm-sans)", "var(--font-outfit)", "sans-serif"],
         mono: ["JetBrains Mono", "monospace"],
       },
       backgroundImage: {

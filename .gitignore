@@ -31,10 +31,14 @@ Thumbs.db
 desktop.ini
 
 # Editors
-.vscode/settings.json
+.vscode/
 .idea/
 *.swp
 *.swo
+
+# Local binaries / CLIs (install via package manager instead)
+supabase.exe
+*.exe
 
 # Logs
 *.log
