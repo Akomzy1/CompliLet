@@ -47,6 +47,11 @@ import {
   handleContractorReply,
   handleMarketplacePickFromCoordinator,
 } from "./contractor-flow.ts";
+import {
+  startExistingTenancyOnboarding,
+  handleExistingTenancyOnboarding,
+  handleTenantConfirmationReply,
+} from "./agents/existing-tenancy-onboarding.ts";
 import { runNrlTaxAgent, detectOverseasLandlord } from "./agents/nrl-tax-agent.ts";
 import {
   checkEscalation,
@@ -143,7 +148,15 @@ async function _route(input: CoordinatorInput): Promise<void> {
     }
   }
 
-  // ── 2b. Contractor inbound path ───────────────────────────────────────
+  // ── 2b. Tenant confirmation inbound path ──────────────────────────────
+  // A tenant onboarded via the Existing Tenancy flow replies "yes" / "correction"
+  // from a number we don't yet have mapped to a session.
+  if (senderRole === "unknown" && text) {
+    const handledAsTenantConfirm = await handleTenantConfirmationReply(phone, text);
+    if (handledAsTenantConfirm) return;
+  }
+
+  // ── 2c. Contractor inbound path ───────────────────────────────────────
   // Inbound message from a phone number that matches a contractor record.
   // Forwards their availability reply to the relevant landlord for approval.
   if (senderRole === "unknown" && text) {
@@ -166,10 +179,49 @@ async function _route(input: CoordinatorInput): Promise<void> {
     return;
   }
 
+  // ── 3b. Onboarding menu & existing-tenancy flow (landlord) ────────────
+  // Runs before session lookup because onboarding doesn't require a session.
+  if (senderRole === "landlord" && input.landlordId) {
+    const { data: stateRow } = await supabase
+      .from("coordinator_state")
+      .select("awaiting")
+      .eq("landlord_id", input.landlordId)
+      .maybeSingle();
+
+    const awaiting = stateRow?.awaiting as string | null | undefined;
+
+    if (awaiting === "entry_menu_choice" && text) {
+      await handleEntryMenuChoice(input, text);
+      return;
+    }
+    if (awaiting === "existing_tenancy_onboarding") {
+      await handleExistingTenancyOnboarding({
+        message: input.message,
+        landlordId: input.landlordId,
+        mediaStorageUrl: input.mediaStorageUrl,
+      });
+      return;
+    }
+    if (awaiting === "empty_property_address" && text) {
+      await handleEmptyPropertyAddress(input.landlordId, phone, text);
+      return;
+    }
+
+    // Trigger menu on explicit keyword.
+    if (/\b(onboard|add\s+property|add\s+tenant|new\s+property|setup|set\s+up)\b/i.test(text)) {
+      await sendEntryMenu(input.landlordId, phone);
+      return;
+    }
+  }
+
   // ── 4. Look up (or create) the active session ─────────────────────────
   const session = await resolveSession(input);
   if (!session) {
-    // No session, no command — prompt the landlord to start a screening.
+    // No session, no command — show the onboarding entry menu.
+    if (senderRole === "landlord" && input.landlordId) {
+      await sendEntryMenu(input.landlordId, phone);
+      return;
+    }
     await sendTextMessage(
       phone,
       "You don't have an active screening running.\n\n" +
@@ -1082,6 +1134,128 @@ async function advanceSession(
   if (error) {
     throw new Error(`Failed to update session ${sessionId}: ${error.message}`);
   }
+}
+
+// ─── Onboarding entry menu ────────────────────────────────────────────────
+// Three-option menu shown on first landlord contact, on explicit onboarding
+// keywords, or when a landlord messages without an active session.
+
+async function sendEntryMenu(landlordId: string, phone: string): Promise<void> {
+  await supabase.from("coordinator_state").upsert(
+    {
+      landlord_id: landlordId,
+      awaiting:    "entry_menu_choice",
+      updated_at:  new Date().toISOString(),
+    },
+    { onConflict: "landlord_id" },
+  );
+
+  await sendTextMessage(
+    phone,
+    "Let's set up your property. What would you like to do?\n\n" +
+      "1️⃣ *Add a new tenant* (I'll screen them from scratch)\n" +
+      "2️⃣ *Add an existing tenancy* (I'll onboard a tenant who's already in the property)\n" +
+      "3️⃣ *Add an empty property* (for future tenants)\n\n" +
+      "Reply *1*, *2*, or *3*.",
+  );
+}
+
+async function handleEntryMenuChoice(
+  input: CoordinatorInput,
+  text: string,
+): Promise<void> {
+  const landlordId = input.landlordId!;
+  const phone = input.message.from;
+  const choice = text.trim().match(/^[123]/)?.[0];
+
+  if (!choice) {
+    await sendTextMessage(
+      phone,
+      "Please reply with *1*, *2*, or *3* to choose an option.",
+    );
+    return;
+  }
+
+  // Clear the entry_menu_choice flag; each branch sets its own awaiting state.
+  await supabase
+    .from("coordinator_state")
+    .update({ awaiting: null, updated_at: new Date().toISOString() })
+    .eq("landlord_id", landlordId);
+
+  switch (choice) {
+    case "1":
+      await handleScreenCommand(input);
+      return;
+
+    case "2":
+      await startExistingTenancyOnboarding(landlordId, phone);
+      return;
+
+    case "3":
+      await supabase.from("coordinator_state").upsert(
+        {
+          landlord_id: landlordId,
+          awaiting:    "empty_property_address",
+          updated_at:  new Date().toISOString(),
+        },
+        { onConflict: "landlord_id" },
+      );
+      await sendTextMessage(
+        phone,
+        "Got it — let's add an empty property. 🏠\n\n" +
+          "What's the *full property address* including postcode?",
+      );
+      return;
+  }
+}
+
+async function handleEmptyPropertyAddress(
+  landlordId: string,
+  phone: string,
+  text: string,
+): Promise<void> {
+  const address = text.trim();
+  if (address.length < 5) {
+    await sendTextMessage(
+      phone,
+      "That address looks too short. Please send the *full property address* including postcode:",
+    );
+    return;
+  }
+
+  // UK postcode suffix — captured if present so it can be stored separately.
+  const postcodeMatch = address.match(/[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}/i);
+  const postcode = postcodeMatch?.[0].toUpperCase().replace(/\s+/g, " ").trim();
+
+  const { data: property, error } = await supabase
+    .from("properties")
+    .insert({
+      landlord_id: landlordId,
+      address,
+      postcode: postcode ?? null,
+    })
+    .select("id")
+    .single();
+
+  if (error || !property) {
+    console.error("[coordinator] Failed to create empty property:", error);
+    await sendTextMessage(
+      phone,
+      "Sorry, I couldn't save that property. Please try again in a moment.",
+    );
+    return;
+  }
+
+  await supabase
+    .from("coordinator_state")
+    .update({ awaiting: null, updated_at: new Date().toISOString() })
+    .eq("landlord_id", landlordId);
+
+  await sendTextMessage(
+    phone,
+    `✅ Property saved:\n\n*${address}*\n\n` +
+      "When you're ready to add a tenant, reply *ADD TENANT* and I'll walk you through it.",
+  );
 }
 
 // ─── Edge Function invocation ──────────────────────────────────────────────
